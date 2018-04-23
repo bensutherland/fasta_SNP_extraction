@@ -51,6 +51,11 @@ Fix the names of the fasta accessions, removing spaces, commas, '+' or dashes:
 Set up genome file as a blast database
 `makeblastdb -in ./02_input_data/genome/tpac-contigs_min200_renamed.fa -parse_seqids -dbtype nucl`
 
+Get lengths of each contig from the genome (to be used by R script below)     
+`GENOME="02_input_data/genome/tpac-contigs_min200_renamed.fa" ; cat $GENOME | awk '$0 ~ ">" {print c; c=0;printf substr($0,2,100) "\t"; } $0 !~ ">" {c+=length($0);} END { print c; }' | tail -n+2 > 02_input_data/genome/ref_genome_seq_lengths.txt`
+
+This will be used by an Rscript below to ensure windows don't go beyond the contig size. 
+
 
 
 ### 1. BLAST search loci against genome 
@@ -72,71 +77,32 @@ Keep only a single record per accession:
 `DATA="03_blast_out/input_loci_v_tpac_no_badchar_outfmt6_remove_multimap_sorted.txt" ; for i in $(cut -f1 $DATA | sort -u); do grep -w -m 1 "$i" $DATA; done > 03_blast_out/input_loci_v_tpac_no_badchar_outfmt6_single_hit.txt`
 
 
-#### Checking Results Before Quality Check
-Number of total alignments
-`grep -vE '^@' input_loci_w_pos.fa.sam  | wc -l`
 
-See the number of alignments per locus
-`grep -vE '^@' input_loci_w_pos.fa.sam | awk ' { print $1 } ' - | uniq -c | sort -nk1 | less`   
+### 2. Identify the window range on the ref genome to capture the locus
+Use Rscript `01_scripts/identify_req_region_w_BLAST.R`
 
-Count the number of alignments to a single location
-`grep -vE '^@' input_loci_w_pos.fa.sam | awk ' { print $1 } ' - | uniq -c | sort -nk1 | awk ' $1 ==1 { print $0 }' - | less`
+This will output:     
+`04_extraction/ranges_for_amplicon_extraction.bed`    
+`04_extraction/ranges_for_amplicon_extraction.csv`
 
+The bedfile is for extraction, the .csv gives additional useful information
 
-#### Use MAPQ to only keep good alignments  
-Output good alignments ( q30 ) in a bam file
-`samtools view -b -q 30 input_loci_w_pos.fa.sam > input_loci_w_pos_q30.bam`
+### 3. Collect the amplicons
+Collect the amplicon ranges using the bed file and the assembly using bedtools:   
+`GENOME="02_input_data/genome/tpac-contigs_min200_renamed.fa" ; bedtools getfasta -fi $GENOME -bed 04_extraction/ranges_for_amplicon_extraction.bed -fo 04_extraction/tpac_amplicon_approx_by_BLAST.fa`
 
-Use above methods to determine the number of loci mapping one location or two locations.
-
-
-How many reads go in forward orientation?
-Find the number of unique reads that align in forward orientation
-`BAM="tpac_neutral_loci_w_new_snp_pos.fa.aligned.bam" ; samtools view -F 16 -q 30 $BAM | awk '{ print $1 }' - | sort | uniq | wc -l`
-
-...and reverse?
-`BAM="tpac_neutral_loci_w_new_snp_pos.fa.aligned.bam" ; samtools view -f 16 -q 30 $BAM | awk '{ print $1 }' - | sort | uniq | wc -l`
-
-
-#### Determine lengths of contigs in genome file to make sure your intervals aren't out of range
-`GENOME="tpac_assembly/tpac_assembly_v1/tpac-contigs_min200_renamed.fa" ; cat $GENOME | awk '$0 ~ ">" {print c; c=0;printf substr($0,2,100) "\t"; } $0 !~ ">" {c+=length($0);} END { print c; }' >  ref_genome_seq_lengths.txt`
-
-This will be used by an Rscript below
-
-
-
-#### Obtain alignment range
-Use bedtools to obtain the alignment range   
-`bedtools bamtobed -i input_loci_w_pos_q30.bam > input_loci_w_pos_q30.bed`
-
-Take this file to the Rscript `identify_req_region.R`, which will give you a bed file output, as well as an overview file of the fields selected.   
-
-Note that this will not allow the range to be before the contig, nor extend after the contig due to the R code. 
-
-The output will be `ranges_for_amplicon_extraction.bed`.    
-
-#### Collect the amplicons ####
-Collect the amplicon ranges using the bed file and the assembly
-BWA:
-`GENOME="tpac_assembly/tpac_assembly_v1/tpac-contigs_min200_renamed.fa" ; bedtools getfasta -fi $GENOME -bed ranges_for_amplicon_extraction.bed -fo tpac_amplicon_approx.fa`
-
-BLAST:
-`GENOME="tpac_assembly/tpac_assembly_v1/tpac-contigs_min200_renamed.fa" ; bedtools getfasta -fi $GENOME -bed ranges_for_amplicon_extraction.bed -fo tpac_amplicon_approx_by_BLAST.fa`
-
-### PART 2 Refine the SNP site on the amplicon fasta
-#### keep only up until the first SNP in the locus file
-Can blast be used?
-
-
-
-
-
-
-#### RENAME OUTPUT AMPLICONS
-`awk 'BEGIN{RS=">"}{print $1"\t"$2;}' tpac_amplicon_approx_by_BLAST.fa | tail -n+2 > out_test.txt`
+Rename the amplicons:     
+`awk 'BEGIN{RS=">"}{print $1"\t"$2;}' tpac_amplicon_approx_by_BLAST.fa | tail -n+2 > 04_extraction/tpac_amplicon_approx_by_BLAST.txt`
 Note: the tail -n+2 removes an empty first line
-
 (from https://www.biostars.org/p/235052/ )
+
+
+########## HERE TODAY #############
+
+
+
+
+
 
 but like this:
 `awk 'BEGIN{RS=">"}{print $1"\t"$2;}' tpac_amplicon_approx_by_BLAST.fa | tail -n+2 > tpac_amplicon_approx_by_BLAST.txt`
