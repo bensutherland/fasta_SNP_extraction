@@ -2,10 +2,6 @@
 # Specifically built for T. pacificus project by Ben Sutherland (DFO) 2018-03-26
 # As usual, use at own risk, no guarantees on usefulness
 
-# Todo #
-# order based on length or eval, then take the first as the one to keep..
-# Do this in BLAST, using '-max_target_seqs 1'
-
 #### Front Matter ####
 
 # Clean space
@@ -20,21 +16,21 @@ library(stringr)
 
 
 
-#### 0. Input data ####
-# Import blast outfmt6 results
-data <- read.table("03_blast_out/input_loci_v_tpac_no_badchar_outfmt6_single_hit.txt")
+#### 0.a Input data ####
+# Import single hit blast outfmt6 results
+data <- read.table("03_blast_out/prepared_tags_v_tpac-contigs_outfmt6_rem_multimap_sort_single_hit.txt")
 head(data)
 colnames(data) <- c("qname","ref.name","ident","align.leng","mismatch","gapopen","qstart","qend","sstart","send","eval","bitscore")
 head(data)
 
-# import contig length file
+# Import contig length file
 contig.length <- read.table(file = "02_input_data/genome/ref_genome_seq_lengths.txt", sep = "\t", header = F)
 head(contig.length)
 colnames(contig.length) <- c("ref.name", "length")
 head(contig.length)
 
 
-#### 0.a Format Input data ####
+#### 0.b Format Input data ####
 # Separate marker name from the position of the SNP
 split.mname <- str_split_fixed(string = data$qname, pattern = "-", n = 2)
 colnames(split.mname) <- c("mname","snp.pos")
@@ -43,6 +39,7 @@ head(split.mname)
 # Combine new split name with original dataframe
 data.split <- cbind(data, split.mname)
 head(data.split)
+
 # Make snp.pos into a numeric value
 data.split[,"snp.pos"] <- as.numeric(as.character(data.split$snp.pos))
 str(data.split)
@@ -51,7 +48,7 @@ str(data.split)
 dim(data.split)
 dim(contig.length)
 data.collected <- merge(x = data.split, y = contig.length, by = "ref.name")
-dim(data.collected)
+dim(data.collected) # should be 3928
 head(data.collected)
 
 # Rename the new split data as data
@@ -70,16 +67,15 @@ length(data$qname)
 
 # Identify the location of the SNP on the ref genome
 snp.spot <- rep(NA, times = nrow(data))
-# approx.read.length <- 83 # estimated from overall distribution of read lengths
 
 for(i in 1:nrow(data)){
   
-  # if forward
+  # if subject is forward
   if(data$sstart[i] < data$send[i]){
     snp.spot[i] <- (data$sstart[i] + (data$snp.pos[i] - data$qstart[i]))
   } 
   
-  # if reverse 
+  # if subject is reverse 
   if(data$sstart[i] > data$send[i]){
     snp.spot[i] <- (data$sstart[i] - (data$snp.pos[i] - data$qstart[i]))
   }
@@ -95,17 +91,15 @@ head(all.data)
 
 
 #### 2. Find 200 bp window range ####
-
-# Identify the range, but when position is less than 100, take 0. 
-## MAY NOT BE TRUE note: there is nothing to save the windows that go over the length
-
+# Identify the range, but when the start position is less than 100, use 0 instead. 
 
 # rename as data2 (temporary)
 data2 <- all.data
 
-# How many targets are within 100 bp of start of contig?
-table(data2$snp.spot > 100) # note will count twice for ones with multiple hits per query
+# How many targets are more than 100 bp in from the start of contig?
+table(data2$snp.spot > 100)
 
+# Set nulls
 begin.region <- rep(NA, times = nrow(data2))
 end.region <- rep(NA, times = nrow(data2))
 
@@ -132,10 +126,10 @@ data3 <- cbind(data2, begin.region, end.region)
 
 head(data3)
 
-# How many of data3 are beyond the sequence lenght of the contig?
+# How many target windows are beyond the sequence length of the contig?
 table(data3$end.region > data3$length)
 
-# Fix the issue of the end region being after the end of the contig:
+# When position of end of target window is greater than length of the contig, use from the end to 200 bp before
 for(i in 1:nrow(data3)){
   if(data3$end.region[i] > data3$length[i]){
     data3$end.region[i] <- data3$length[i]
@@ -145,7 +139,14 @@ for(i in 1:nrow(data3)){
 
 
 # Plot where on the reference contig the data is
-hist(data3$begin.region, breaks = 200, main = "Start point of extracting region", xlab = "distance (bp)")
+pdf("04_extraction/start_position_extract_window.pdf", width = 8, height = 5)
+
+hist(data3$begin.region, breaks = 200, main = "Start point of extracting region", xlab = "distance (bp)"
+     , las = 1)
+
+# The following turns off the saving out of the image
+dev.off()
+
 
 # Export whole data file
 write.csv(data3, file = "04_extraction/ranges_for_amplicon_extraction.csv", row.names = F, quote = F)
