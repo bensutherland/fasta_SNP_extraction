@@ -152,7 +152,7 @@ Collect using xargs again:
 `cat 02_input_data/neutral_loci_fst_for_amplicon_selection_name_only.txt | xargs -I{} grep -A1 {} 05_amplicons/completed_all_amplicons.fa | grep -vE '^--$' - > 05_amplicons/neutral_amplicons.fa`
 
 
-Need the rest of the amplicons, taken from the top Fst (here, 412 more):    
+Need the rest of the amplicons, taken from the top Fst (here, 413 more):    
 `head -n 824 ./05_amplicons/neutral_amplicons.fa > 05_amplicons/neutral_amplicons_limited_selection.fa`    
 
 Combine:   
