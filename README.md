@@ -83,7 +83,7 @@ e > 03_blast_out/prepared_tags_v_tpac-contigs_outfmt6_rem_multimap_sort_single_h
 ```
 
 
-### 2. Identify the window range on the ref genome to capture the locus
+### 2. Identify the target range within the ref genome
 Use Rscript `01_scripts/identify_req_region_w_BLAST.R`
 
 This will use as inputs the single hit per blast query, and will find the target window, making sure to not go before the start of the reference contig, nor past the end of the reference contig. In these two cases, the start of the window will be 0 or the end of the window will be the length of the contig, respectively. 
@@ -94,17 +94,37 @@ This will output:
 
 The bedfile is for extraction, the .csv gives additional useful information for determining identified positions.  
 
-### 3. Collect the amplicons
+### 3. Collect amplicons
 Collect the target sequence using the bed file (from above) and the genome assembly, using bedtools:      
 `GENOME="02_input_data/genome/tpac-contigs_min200_renamed.fa" ; bedtools getfasta -fi $GENOME -bed 04_extraction/ranges_for_amplicon_extraction.bed -fo 04_extraction/tpac_amplicon_approx_by_BLAST.fa`
 
 
 ### 4. Rename amplicons
 Turn fasta into tab separated file for ease of renaming amplicons:     
-`awk 'BEGIN{RS=">"}{print $1"\t"$2;}' 04_extraction/tpac_amplicon_approx_by_BLAST.fa | tail -n+2 > 04_extraction/tpac_amplicon_approx_by_BLAST.txt`
-Note: the tail -n+2 removes an empty first line
+`awk 'BEGIN{RS=">"}{print $1"\t"$2;}' 04_extraction/tpac_amplicon_approx_by_BLAST.fa | tail -n+2 > 04_extraction/tpac_amplicon_approx_by_BLAST.txt`     
+Note: the tail -n+2 removes an empty first line     
 (from https://www.biostars.org/p/235052/ )
 
 Use the Rscript `01_scripts/rename_amplicons.R`     
+This will take the identifier and sequence from `04_extraction/tpac_amplicon_approx_by_BLAST.txt` and the various output information from `04_extraction/ranges_for_amplicon_extraction.csv` and retain only relevant info for the name of the accessions.    
+Produces: `05_amplicons/all_fields.txt`
+
+Rename and format a fasta file with all amplicons:     
+`awk -F"\t" '{ print ">"$1"__"$2"__"$3"__"$4"\n" $5 }' 05_amplicons/all_fields.txt > 05_amplicons/all_amplicons.fa`     
+
+This will give you names showing:    
+```
+>refgenomeContigID:bedrange__queryLocus__SNPposInExtractedSegment__ForOrRevOrient    
+SEQUENCESEQUENCESEQUENCE
+```
+### 5. Separate into forward or reverse amplicon fasta files
+Select forwards and put into file:    
+`grep -A1 '__for' 05_amplicons/all_amplicons.fa | grep -vE '^--$' - > 05_amplicons/forward_amplicons.fa`
+
+Select reverses and put into file:    
+`grep -A1 '__rev' 05_amplicons/all_amplicons.fa | grep -vE '^--$' - > 05_amplicons/to_be_revcomp_amplicons.fa`
+
+### 5. Select only the top amplicons
+
 
 
