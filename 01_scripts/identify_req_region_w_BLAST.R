@@ -115,7 +115,7 @@ for(i in 1:nrow(data2)){
   } else {
     
     # if alignment position is not > 100 bp into the contig, then just start at the beginning of the contig
-    begin.region[i] <- 0
+    begin.region[i] <- 1
     end.region[i] <- 200
   }
 }
@@ -136,7 +136,7 @@ table(data3$end.region > data3$length)
 for(i in 1:nrow(data3)){
   if(data3$end.region[i] > data3$length[i]){
     data3$end.region[i] <- data3$length[i]
-    data3$begin.region[i] <- (data3$length[i] - 200)
+    data3$begin.region[i] <- (data3$length[i] - 199)
   }
 }
 
