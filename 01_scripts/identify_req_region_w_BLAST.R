@@ -15,7 +15,6 @@ setwd("~/Documents/06_tpac/fasta_SNP_extraction")
 library(stringr)
 
 
-
 #### 0.a Input data ####
 # Import single hit blast outfmt6 results
 data <- read.table("03_blast_out/prepared_tags_v_tpac-contigs_outfmt6_rem_multimap_sort_single_hit.txt")
@@ -67,25 +66,29 @@ length(data$qname)
 
 # Identify the location of the SNP on the ref genome
 snp.spot <- rep(NA, times = nrow(data))
+for.or.rev <- rep(NA, times = nrow(data))
 
 for(i in 1:nrow(data)){
   
   # if subject is forward
   if(data$sstart[i] < data$send[i]){
     snp.spot[i] <- (data$sstart[i] + (data$snp.pos[i] - data$qstart[i]))
+    for.or.rev[i] <- "for"
   } 
   
   # if subject is reverse 
   if(data$sstart[i] > data$send[i]){
     snp.spot[i] <- (data$sstart[i] - (data$snp.pos[i] - data$qstart[i]))
+    for.or.rev[i] <- "rev"
   }
 }
 
 head(snp.spot)
+head(for.or.rev)
 
 # Attach to the rest of the data
 head(data)
-all.data <- cbind(data, snp.spot)
+all.data <- cbind(data, snp.spot, for.or.rev)
 
 head(all.data)
 
