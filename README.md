@@ -124,7 +124,38 @@ Select forwards and put into file:
 Select reverses and put into file:    
 `grep -A1 '__rev' 05_amplicons/all_amplicons.fa | grep -vE '^--$' - > 05_amplicons/to_be_revcomp_amplicons.fa`
 
-### 5. Select only the top amplicons
+Using E. Normandeau's reverse complement script #link here#
+`fasta_reverse_comp.py ./05_amplicons/to_be_revcomp_amplicons.fa ./05_amplicons/revcomped_amplicons.fa`
 
+Combine
+`cat 05_amplicons/forward_amplicons.fa 05_amplicons/revcomped_amplicons.fa > 05_amplicons/completed_all_amplicons.fa`
+
+### 6. Select only the top amplicons
+Put final files for amplicon selection in input folder:     
+`cp ../recd_files_JC/neutral_loci_fst_for_amplicon_selection.csv ./../recd_files_JC/adaptive_loci_fst_for_amplicon_selection.csv ./02_input_data/`
+
+#### Obtain the adaptive amplicons (as many as possible)
+Get target names only:     
+`awk -F"," '{ print $1 }' 02_input_data/adaptive_loci_fst_for_amplicon_selection.csv | grep -vE '^Loci_sig' - > 02_input_data/adaptive_loci_fst_for_amplicon_selection_name_only.txt`
+
+Collect using xargs to keep order (relevant for next one):    
+`cat 02_input_data/adaptive_loci_fst_for_amplicon_selection_name_only.txt | xargs -I{} grep -A1 {} 05_amplicons/completed_all_amplicons.fa | grep -vE '^--$' - > 05_amplicons/adaptive_amplicons.fa`
+
+How many? 
+`grep -cE '^>' 05_amplicons/adaptive_amplicons.fa`
+
+#### Obtain the neutral amplicons (in order)  
+Get neutral target names:   
+`awk -F"," '{ print $1 }' 02_input_data/neutral_loci_fst_for_amplicon_selection.csv | grep -vE '^Loci_non' - > 02_input_data/neutral_loci_fst_for_amplicon_selection_name_only.txt`
+
+Collect using xargs again:    
+`cat 02_input_data/neutral_loci_fst_for_amplicon_selection_name_only.txt | xargs -I{} grep -A1 {} 05_amplicons/completed_all_amplicons.fa | grep -vE '^--$' - > 05_amplicons/neutral_amplicons.fa`
+
+
+Need the rest of the amplicons, taken from the top Fst (here, 412 more):    
+`head -n 824 ./05_amplicons/neutral_amplicons.fa > 05_amplicons/neutral_amplicons_limited_selection.fa`    
+
+Combine:   
+`cat 05_amplicons/adaptive_amplicons.fa 05_amplicons/neutral_amplicons_limited_selection.fa > 06_output/tpac_amplicon_panel_v0.1.fa`
 
 
