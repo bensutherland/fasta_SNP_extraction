@@ -6,7 +6,8 @@ Designed as part of a project with the Molecular Genetics Laboratory (MGL) at th
 Warning: this pipeline is provided as is, without any guarantee of usefulness.    
 
 All scripts are to be run from the main folder.   
-
+Below is a general overview of the workflow:    
+![](00_archive/tpac_workflow_2018-04-25.png)
 
 ### 0.1 Input information (here for Eulachon)    
 Original files, put in `02_input_data`:    
