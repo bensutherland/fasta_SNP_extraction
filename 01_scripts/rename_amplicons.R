@@ -53,9 +53,10 @@ data.all <- merge(x = data, y = data.suppl.all, by = "match.id")
 dim(data)
 dim(data.suppl.all)
 dim(data.all)
+head(data.all)
 
 # Determine exactly where the SNP is on the extracted window
-snp.pos.in.window <- data.all$snp.spot - data.all$begin.region
+snp.pos.in.window <- data.all$snp.spot - data.all$begin.region 
 head(snp.pos.in.window)
 
 data.all2 <- cbind(data.all, snp.pos.in.window)
@@ -68,11 +69,16 @@ head(data.all2[,7:ncol(data.all2)], n = 20)
 for(i in 1:nrow(data.all2)){
   # Only correct if reverse
   if(data.all2$for.or.rev[i]=="rev"){
-    data.all2$snp.pos.in.window[i] <- 201 - data.all2$snp.pos.in.window[i]
+    data.all2$snp.pos.in.window[i] <- 200 - data.all2$snp.pos.in.window[i]
   }
 }
 
 head(data.all2[,7:ncol(data.all2)], n = 20)
+
+
+###### Correct the specific issue of reverse complement SNP being at position 101 when title suggests 100
+colnames(data.all2)
+data.all2[which(data.all2$for.or.rev=="rev" & data.all2$snp.pos.in.window=="100"), ]
 
 
 ###### Separate output for reverse complement target regions and forward regions
