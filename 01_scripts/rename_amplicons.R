@@ -68,7 +68,7 @@ head(data.all2[,7:ncol(data.all2)], n = 20)
 for(i in 1:nrow(data.all2)){
   # Only correct if reverse
   if(data.all2$for.or.rev[i]=="rev"){
-    data.all2$snp.pos.in.window[i] <- 200 - data.all2$snp.pos.in.window[i]
+    data.all2$snp.pos.in.window[i] <- 201 - data.all2$snp.pos.in.window[i]
   }
 }
 
