@@ -5,8 +5,16 @@ Designed as part of a project with the Molecular Genetics Laboratory (MGL) at th
 
 Warning: this pipeline is provided as is, without any guarantee of usefulness.    
 
-All scripts are to be run from the main folder.   
-Below is a general overview of the workflow:    
+All scripts are to be run from the main folder.    
+General overview:   
+0. Prepare input data (project-specific)
+1) BLAST search the genome
+2) Identify target range
+3) Obtain target range
+4) Rename amplicons
+5) Reverse complement necessary amplicons
+6) Select specific amplicons
+
 
 ![](00_archive/tpac_workflow_2018-04-25.png)
 
