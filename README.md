@@ -7,33 +7,34 @@ Warning: this pipeline is provided as is, without any guarantee of usefulness.
 
 All scripts are to be run from the main folder.   
 Below is a general overview of the workflow:    
+
 ![](00_archive/tpac_workflow_2018-04-25.png)
 
-### 0.1 Input information (here for Eulachon)    
-Original files, put in `02_input_data`:    
-`tpac_adaptive_loci_2018-03-22.csv`
+### 0.1 Input information (example from Eulachon project)    
+Put original files in `02_input_data`:    
+`tpac_adaptive_loci_2018-03-22.csv`     
 `tpac_neutral_loci_2018-03-22.csv`
 
-Original files are in the following format:    
+Original format:    
 ```
 Loci_name,Loci_Sequence,SNP_location
 Tpa_0002,GTTCGTTCAGTCTAAAGAGAATAATAGGACCGGGAGGTTTGTACTTATGTAATAGACACAC[A/T]CACATACATATGCGCA,62
 ```
 
-Genome contig assembly, put in `02_input_data/genome`:    
-`tpac_assembly/tpac_assembly_v1/tpac-contigs_min200.fa`
+Put genome contig assembly in `02_input_data/genome`:    
+`tpac_assembly/tpac_assembly_v1/tpac-contigs_min200.fa`   
 
-#### 0.1a Combine and prepare input loci files
+#### 0.1a Prepare input loci files (example from Eulachon project)
 Concatenate input files, remove header, remove rest of line after first colon (occurs when multiple SNP locations):     
 `cat 02_input_data/tpac_adaptive_loci_2018-03-22.csv 02_input_data/tpac_neutral_loci_2018-03-22.csv | grep -vE 'Loci.name' - | awk -F":" '{ print $1 }' - > 02_input_data/input_loci.csv`
 
-Calculate the *position of the first SNP in the locus* (based on square bracket position):         
+Determine the **position of the first SNP in the locus** based on presence of a square bracket:         
 `awk -F, '{ print $2 }' 02_input_data/input_loci.csv | while read l ; do echo $l | cut -d[ -f1 | wc -c ; done > 02_input_data/first_snp_position.csv`
 
-Add re-calculated position to the original file   
+Add position to the original file   
 `paste -d, 02_input_data/input_loci.csv 02_input_data/first_snp_position.csv > 02_input_data/input_loci_w_pos.csv`   
 
-Select columns of interest and put into FASTA:      
+Select columns of interest and put into FASTA format:      
 `awk -F"," '{ print ">"$1"-"$4"\n"$2 }' 02_input_data/input_loci_w_pos.csv > 02_input_data/input_loci_w_pos.fa`   
 
 Remove characters ([]/) to prevent issues with BLAST:    
@@ -87,7 +88,7 @@ e > 03_blast_out/prepared_tags_v_tpac-contigs_outfmt6_rem_multimap_sort_single_h
 ### 2. Identify the target range within the ref genome
 Use Rscript `01_scripts/identify_req_region_w_BLAST.R`
 
-This will use as inputs the single hit per blast query, and will find the target window, making sure to not go before the start of the reference contig, nor past the end of the reference contig. In these two cases, the start of the window will be 0 or the end of the window will be the length of the contig, respectively. 
+This will use as inputs the single hit per blast query, and will find the target window, making sure to not go before the start of the reference contig, nor past the end of the reference contig. In these two cases, the start of the window will be the beginning or the end of the window will be the length of the contig, respectively.  
 
 This will output:     
 `04_extraction/ranges_for_amplicon_extraction.bed`    
@@ -103,8 +104,7 @@ Collect the target sequence using the bed file (from above) and the genome assem
 ### 4. Rename amplicons
 Turn fasta into tab separated file for ease of renaming amplicons:     
 `awk 'BEGIN{RS=">"}{print $1"\t"$2;}' 04_extraction/tpac_amplicon_approx_by_BLAST.fa | tail -n+2 > 04_extraction/tpac_amplicon_approx_by_BLAST.txt`     
-Note: the tail -n+2 removes an empty first line     
-(from https://www.biostars.org/p/235052/ )
+Note: the tail -n+2 removes an empty first line (from https://www.biostars.org/p/235052/ )
 
 Use the Rscript `01_scripts/rename_amplicons.R`     
 This will take the identifier and sequence from `04_extraction/tpac_amplicon_approx_by_BLAST.txt` and the various output information from `04_extraction/ranges_for_amplicon_extraction.csv` and retain only relevant info for the name of the accessions.    
@@ -125,7 +125,7 @@ Select forwards and put into file:
 Select reverses and put into file:    
 `grep -A1 '__rev' 05_amplicons/all_amplicons.fa | grep -vE '^--$' - > 05_amplicons/to_be_revcomp_amplicons.fa`
 
-Using E. Normandeau's reverse complement script #link here#
+Using E. Normandeau's reverse complement script ( https://github.com/enormandeau/Scripts )
 `fasta_reverse_comp.py ./05_amplicons/to_be_revcomp_amplicons.fa ./05_amplicons/revcomped_amplicons.fa`
 
 Combine
@@ -145,7 +145,7 @@ Collect using xargs to keep order (relevant for next one):
 How many? 
 `grep -cE '^>' 05_amplicons/adaptive_amplicons.fa`
 
-#### Obtain the neutral amplicons (in order)  
+#### Obtain the neutral amplicons (in order of descending Fst)  
 Get neutral target names:   
 `awk -F"," '{ print $1 }' 02_input_data/neutral_loci_fst_for_amplicon_selection.csv | grep -vE '^Loci_non' - > 02_input_data/neutral_loci_fst_for_amplicon_selection_name_only.txt`
 
@@ -154,9 +154,9 @@ Collect using xargs again:
 
 
 Need the rest of the amplicons, taken from the top Fst (here, 413 more):    
-`head -n 824 ./05_amplicons/neutral_amplicons.fa > 05_amplicons/neutral_amplicons_limited_selection.fa`    
+`head -n 826 ./05_amplicons/neutral_amplicons.fa > 05_amplicons/neutral_amplicons_limited_selection.fa`    
 
 Combine:   
 `cat 05_amplicons/adaptive_amplicons.fa 05_amplicons/neutral_amplicons_limited_selection.fa > 06_output/tpac_amplicon_panel_v0.1.fa`
 
-
+This concludes the amplicon panel locus design.    
