@@ -62,11 +62,13 @@ for(i in 1:nrow(data.all2)){
 head(data.all2[,7:ncol(data.all2)], n = 20)
 
 
-
+###### Separate output for reverse complement target regions and forward regions
+dim(data.all2[data.all2$for.or.rev=="rev", ]) # 1952
+dim(data.all2[data.all2$for.or.rev=="for", ]) # 1978
 
 
 # Get the needed pieces for the name
-data.export <- data.all2[,c("match.id", "mname", "snp.pos.in.window", "seq")]
+data.export <- data.all2[,c("match.id", "mname", "snp.pos.in.window", "for.or.rev" , "seq")]
 
 write.table(x = data.export, file = "05_amplicons/all_fields.txt", sep = "\t"
             , col.names = F, row.names = F, quote = F)
