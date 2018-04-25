@@ -16,12 +16,19 @@ library(stringr)
 library(tidyr)
 
 
+
+
 #### 0. Input data ####
 # Import blast outfmt6 results
 data <- read.table("04_extraction/tpac_amplicon_approx_by_BLAST.txt")
 head(data)
 colnames(data) <- c("match.id", "seq")
 head(data)
+
+# remove duplicates
+data <- data[order(data[,'match.id']), ]
+data <- data[!duplicated(data$match.id), ]
+dim(data)
 
 # can separate the match.id if needed
 #data2 <- separate(data = data, col = "contig.name", into = c("contig", "range"), sep = "\\:")
@@ -33,6 +40,12 @@ head(data.suppl)
 match.id <- paste(data.suppl$ref.name,":",data.suppl$begin.region,"-",data.suppl$end.region, sep = "")
 data.suppl.all <- cbind(data.suppl, match.id)
 head(data.suppl.all)
+
+
+# remove duplicates
+data.suppl.all <- data.suppl.all[order(data.suppl.all[, 'match.id']), ]
+data.suppl.all <- data.suppl.all[!duplicated(data.suppl.all$match.id), ]
+dim(data.suppl.all)
 
 
 # Merge two dataframes
@@ -63,8 +76,8 @@ head(data.all2[,7:ncol(data.all2)], n = 20)
 
 
 ###### Separate output for reverse complement target regions and forward regions
-dim(data.all2[data.all2$for.or.rev=="rev", ]) # 1952
-dim(data.all2[data.all2$for.or.rev=="for", ]) # 1978
+dim(data.all2[data.all2$for.or.rev=="rev", ]) # 1935
+dim(data.all2[data.all2$for.or.rev=="for", ]) # 1971
 
 
 # Get the needed pieces for the name
