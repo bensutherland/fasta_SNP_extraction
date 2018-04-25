@@ -141,7 +141,19 @@ for(i in 1:nrow(data3)){
 }
 
 
-# Plot where on the reference contig the data is
+## Remove any loci where the expected SNP position is before the start of the contig
+dim(data3)
+head(data3)
+table(data3$snp.spot < 1) # 21 instances
+
+# how many?
+dim(data3[data3$snp.spot > 1 , ])
+
+# Remove the loci where the SNP is outside the window
+data3 <- data3[data3$snp.spot > 1 , ]
+
+
+## Plot where on the reference contig the data is
 pdf("04_extraction/start_position_extract_window.pdf", width = 8, height = 5)
 
 hist(data3$begin.region, breaks = 200, main = "Start point of extracting region", xlab = "distance (bp)"
