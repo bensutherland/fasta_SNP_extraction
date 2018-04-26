@@ -167,4 +167,8 @@ Need the rest of the amplicons, taken from the top Fst (here, 413 more):
 Combine:   
 `cat 05_amplicons/adaptive_amplicons.fa 05_amplicons/neutral_amplicons_limited_selection.fa > 06_output/tpac_amplicon_panel_v0.1.fa`
 
+
+#### Obtain the RAD tag records corresponding to the amplicon panel
+`grep -E '^>' 06_output/tpac_amplicon_panel_v0.1.fa | awk -F"__" '{ print $2 }' - | xargs -I{} grep {} 02_input_data/z-draft_input/input_loci.csv > 06_output/tpac_amplicon_panel_rad_tags.csv`
+
 This concludes the amplicon panel locus design.    
