@@ -78,7 +78,7 @@ head(data.all2[,7:ncol(data.all2)], n = 20)
 
 ###### Correct the specific issue of reverse complement SNP being at position 101 when title suggests 100
 colnames(data.all2)
-data.all2[which(data.all2$for.or.rev=="rev" & data.all2$snp.pos.in.window=="100"), ]
+data.all2[ which(data.all2$for.or.rev=="rev" & data.all2$snp.pos.in.window=="100"), "snp.pos.in.window" ] <- 101
 
 
 ###### Separate output for reverse complement target regions and forward regions
