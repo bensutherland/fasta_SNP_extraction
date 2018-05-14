@@ -119,11 +119,12 @@ This will take the identifier and sequence from `04_extraction/tpac_amplicon_app
 Produces: `05_amplicons/all_fields.txt`
 
 Rename and format a fasta file with all amplicons:     
-`awk -F"\t" '{ print ">"$1"__"$2"__"$3"__"$4"\n" $5 }' 05_amplicons/all_fields.txt > 05_amplicons/all_amplicons.fa`     
+`awk -F"\t" '{ print ">"$1"__"$2"__"$3"__"$4"\n" $5 }' 05_amplicons/all_fields.txt | sed 's/\:/_/g' - > 05_amplicons/all_amplicons.fa`
+Note the removal of the bed file character ':'.    
 
 This will give you names showing:    
 ```
->refgenomeContigID:bedrange__queryLocus__SNPposInExtractedSegment__ForOrRevOrient    
+>refgenomeContigID_bedrange__queryLocus__SNPposInExtractedSegment__ForOrRevOrient    
 SEQUENCESEQUENCESEQUENCE
 ```
 ### 5. Separate into forward or reverse amplicon fasta files
@@ -165,10 +166,10 @@ Need the rest of the amplicons, taken from the top Fst (here, 413 more):
 `head -n 826 ./05_amplicons/neutral_amplicons.fa > 05_amplicons/neutral_amplicons_limited_selection.fa`    
 
 Combine:   
-`cat 05_amplicons/adaptive_amplicons.fa 05_amplicons/neutral_amplicons_limited_selection.fa > 06_output/tpac_amplicon_panel_v0.1.fa`
+`cat 05_amplicons/adaptive_amplicons.fa 05_amplicons/neutral_amplicons_limited_selection.fa > 06_output/tpac_amplicon_panel_v0.2.fa`
 
 
 #### Obtain the RAD tag records corresponding to the amplicon panel
-`grep -E '^>' 06_output/tpac_amplicon_panel_v0.1.fa | awk -F"__" '{ print $2 }' - | xargs -I{} grep {} 02_input_data/z-draft_input/input_loci.csv > 06_output/tpac_amplicon_panel_rad_tags.csv`
+`grep -E '^>' 06_output/tpac_amplicon_panel_v0.2.fa | awk -F"__" '{ print $2 }' - | xargs -I{} grep {} 02_input_data/z-draft_input/input_loci.csv > 06_output/tpac_amplicon_panel_rad_tags.csv`
 
 This concludes the amplicon panel locus design.    
