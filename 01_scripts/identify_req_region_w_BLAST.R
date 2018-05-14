@@ -64,7 +64,8 @@ length(data$qname)
 ##  alignments may be forward or reverse aligned, but in either case, 
 ##   the query will be in the forward direction, the subject may invert
 
-# Identify the location of the SNP on the ref genome
+# Identify the location of the SNP on the ref genome within the set extraction window
+# note that this will make the snp.spot value, which will then be independent of whether the align is for.or.rev
 snp.spot <- rep(NA, times = nrow(data))
 for.or.rev <- rep(NA, times = nrow(data))
 
@@ -158,6 +159,31 @@ dim(data3[data3$snp.spot > 1 , ])
 
 # Retain only the loci where the SNP is within the window
 data3 <- data3[data3$snp.spot > 1 , ]
+
+
+### Change all windows that extend before the start of the contig to instead start at 1
+# also change snp.spot accordingly as this window shifts
+#data.backup <- data3
+tail(head(data3, n = 20), n =10)
+
+shift.value <- NULL
+
+for(i in 1:nrow(data3)){
+  if(data3$begin.region[i] < 0){
+    # Find the value by which to shift the begin.region and snp.spot
+    shift.value <- abs(data3$begin.region[i]) + 1
+    
+    # Change the begin.region from a negative to +1 value
+    data3$begin.region[i] <- data3$begin.region[i] + shift.value
+    
+    # In parallel, also change the snp.spot value accordingly
+    data3$snp.spot[i] <- data3$snp.spot[i] + shift.value
+                               
+  }
+}
+
+tail(head(data3, n = 20), n =10)
+
 
 
 ## Plot where on the reference contig the data is
