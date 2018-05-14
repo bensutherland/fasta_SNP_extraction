@@ -1,4 +1,4 @@
-# Identify a 200 bp window around a SNP for loci aligned to a reference genome
+# Identify a window around a SNP for loci aligned to a reference genome
 # Specifically built for T. pacificus project by Ben Sutherland (DFO) 2018-03-26
 # As usual, use at own risk, no guarantees on usefulness
 
@@ -93,63 +93,70 @@ all.data <- cbind(data, snp.spot, for.or.rev)
 head(all.data)
 
 
-#### 2. Find 200 bp window range ####
-# Identify the range, but when the start position is less than 100, use 0 instead. 
+#### 2. Find X bp window range ####
+# Identify the range, but when the start position is less than X/2, use 0 instead. 
+total.window <- 400
+half.window <- total.window/2
 
 # rename as data2 (temporary)
 data2 <- all.data
 
-# How many targets are more than 100 bp in from the start of contig?
-table(data2$snp.spot > 100)
+## Avoid going passed the start of the contig:
+# How many targets are more than half.window bp in from the start of contig?
+table(data2$snp.spot > half.window)
 
 # Set nulls
 begin.region <- rep(NA, times = nrow(data2))
 end.region <- rep(NA, times = nrow(data2))
 
+# Identify the range using for loop
 for(i in 1:nrow(data2)){
   
-  # if snp.spot is greater than 100 bp into ref contig, do the full method
-  if(data2$snp.spot[i] > 100){
-    begin.region[i] <- data2$snp.spot[i] - 100 
-    end.region[i] <- data2$snp.spot[i] + 100 
+  # if snp.spot is greater than half.window bp into ref contig, do the full method
+  if(data2$snp.spot[i] > half.window){
+    begin.region[i] <- data2$snp.spot[i] - half.window 
+    end.region[i] <- data2$snp.spot[i] + half.window 
   } else {
     
-    # if alignment position is not > 100 bp into the contig, then just start at the beginning of the contig
+  # if snp.spot is less than half.window bp into the contig, then start extraction window at the beginning of the contig
     begin.region[i] <- 1
-    end.region[i] <- 200
+    end.region[i] <- total.window
   }
 }
 
-head(begin.region)
-head(data2$snp.spot)
-head(end.region)
+# the following can be used to confirm the math
+head(begin.region, n = 20)
+head(data2$snp.spot, n = 20)
+head(end.region, n = 20)
 
 # Collect into datafile
 data3 <- cbind(data2, begin.region, end.region)
 
 head(data3)
 
+## Avoid going passed the end of the contig:
 # How many target windows are beyond the sequence length of the contig?
 table(data3$end.region > data3$length)
 
-# When position of end of target window is greater than length of the contig, use from the end to 200 bp before
+# When position of end of target window is greater than length of the contig, use from the end to total.window bp before
 for(i in 1:nrow(data3)){
   if(data3$end.region[i] > data3$length[i]){
     data3$end.region[i] <- data3$length[i]
-    data3$begin.region[i] <- (data3$length[i] - 199)
+    data3$begin.region[i] <- (data3$length[i] - (total.window-1))
   }
 }
 
+head(data3)
 
-## Remove any loci where the expected SNP position is before the start of the contig
+### Avoid when SNP position is outside of the contig
 dim(data3)
 head(data3)
 table(data3$snp.spot < 1) # 21 instances
 
-# how many?
+# how many rows will be retained (note this shows rows and columns)
 dim(data3[data3$snp.spot > 1 , ])
 
-# Remove the loci where the SNP is outside the window
+# Retain only the loci where the SNP is within the window
 data3 <- data3[data3$snp.spot > 1 , ]
 
 
