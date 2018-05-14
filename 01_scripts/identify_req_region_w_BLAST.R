@@ -99,6 +99,9 @@ head(all.data)
 total.window <- 400
 half.window <- total.window/2
 
+# For future scripts, record window size:
+write.table(total.window, file="04_extraction/total_window_size.txt", quote = F)
+
 # rename as data2 (temporary)
 data2 <- all.data
 
