@@ -154,7 +154,10 @@ Collect using xargs to keep order (relevant for next one):
 How many? 
 `grep -cE '^>' 05_amplicons/adaptive_amplicons.fa`
 
+For a total of 600 amplicons, subtract this number from the 600 total and take that many records from the neutral markers below.    
+
 #### Obtain the neutral amplicons (in order of descending Fst)  
+Note that the neutral markers should be in order of descending Fst, where you will select the best ones first (the highest Fst first).    
 Get neutral target names:   
 `awk -F"," '{ print $1 }' 02_input_data/neutral_loci_fst_for_amplicon_selection.csv | grep -vE '^Loci_non' - > 02_input_data/neutral_loci_fst_for_amplicon_selection_name_only.txt`
 
@@ -162,8 +165,8 @@ Collect using xargs again:
 `cat 02_input_data/neutral_loci_fst_for_amplicon_selection_name_only.txt | xargs -I{} grep -A1 {} 05_amplicons/completed_all_amplicons.fa | grep -vE '^--$' - > 05_amplicons/neutral_amplicons.fa`
 
 
-Need the rest of the amplicons, taken from the top Fst (here, 413 more):    
-`head -n 826 ./05_amplicons/neutral_amplicons.fa > 05_amplicons/neutral_amplicons_limited_selection.fa`    
+Need the rest of the amplicons, taken from the top Fst (here, 416 more):    
+`head -n 832 ./05_amplicons/neutral_amplicons.fa > 05_amplicons/neutral_amplicons_limited_selection.fa`    
 
 Combine:   
 `cat 05_amplicons/adaptive_amplicons.fa 05_amplicons/neutral_amplicons_limited_selection.fa > 06_output/tpac_amplicon_panel_v0.2.fa`
@@ -173,3 +176,13 @@ Combine:
 `grep -E '^>' 06_output/tpac_amplicon_panel_v0.2.fa | awk -F"__" '{ print $2 }' - | xargs -I{} grep {} 02_input_data/z-draft_input/input_loci.csv > 06_output/tpac_amplicon_panel_rad_tags.csv`
 
 This concludes the amplicon panel locus design.    
+
+#### Export data for use in amplicon panel submission form
+Will need the following 'alleles only' file for the Rscript:   
+`awk -F"[" '{ print $2 }' 06_output/tpac_amplicon_panel_rad_tags.csv
+| awk -F"]" '{ print $1 }' - | sed 's/\//,/g' - > 06_output/alleles_only.txt`
+
+Also need the text version of the amplicon panel:   
+`awk 'BEGIN{RS=">"}{print $1"\t"$2;}' 06_output/tpac_amplicon_panel_v0.2.fa | tail -n+2 > 06_output/tpac_amplicon_panel_v0.2.txt`
+
+Then use the Rscript `01_scripts/collect_required_info_for_sub_form.R`    
