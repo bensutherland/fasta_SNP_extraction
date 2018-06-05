@@ -178,9 +178,11 @@ Will need the following 'alleles only' file for the Rscript:
 Also need the text version of the amplicon panel:   
 `awk 'BEGIN{RS=">"}{print $1"\t"$2;}' 06_output/tpac_all_amplicons.fa | tail -n+2 > 06_output/tpac_all_amplicons.txt`
 
-Then use the Rscript `01_scripts/collect_required_info_for_sub_form.R`    
-Followed by the Rscript `01_scripts/figuring_out_other_method_of_inserting_alleles.R`    
+Then use the Rscript `01_scripts/collect_required_info_for_sub_form.R`   
+This Rscript will merge all the collective data, including the radtags, the amplicon text, the scaffold names.    
 
+Followed by the Rscript `01_scripts/figuring_out_other_method_of_inserting_alleles.R`    
+This Rscript will use the flanking region either before or after the SNP in the radtag file to match against the amplicon sequence, split the amplicon sequence at the expected site of the polymorphism, insert the alleles in square brackets, calculate where this insertion occurred and compare against where the insertion was expected. If they vary too much (e.g. > 5 bp), then this amplicon will be removed, as the flanking region resulted in non-specific identification of polymorphism location. Finally, only the top markers based on Fst will be retained, to a total of 600 markers. These will be output in the format required by the synthesis company.       
 This will finally output a file entitled `06_output/amplicon_panel_v<version_number>.csv`         
 
 
