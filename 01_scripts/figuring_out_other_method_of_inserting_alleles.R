@@ -2,7 +2,7 @@
 # Assumes that your rad locus file and amplicon file are in the same orientation
 
 # rm(list=ls())
-setwd("~/Documents/06_tpac/fasta_SNP_extraction_400bp/")
+setwd("~/Documents/06_tpac/fasta_SNP_extraction_400bp_second//")
 
 # Load libraries
 require(tidyr)
@@ -11,11 +11,9 @@ require(stringr)
 # Import data
 load(file = "06_output/submission_data_part_1.RData")
 
-# Relevant data to use
+#### 1. Isolate the first polymorphism in the RAD tag ####
 head(rad.tags)
 
-
-#### 1. Isolate the first polymorphism in the RAD tag ####
 # Take out the section before the first square brackets
 first.piece.extracted <- separate(data = rad.tags, col = "radlocus", into = c("before.snp", "after.snp"), sep = "\\[" )
 # expect warnings as it will read up to the second instance then stop
@@ -165,15 +163,16 @@ for(i in 1:nrow(complete_info)){
 }
 
 # Check for matching fails, and if so, go back to just after step 2 and change 'before' to 'after' or visa versa.
-table(match.success) # two matching fails
-complete_info_w_amplicon[which(match.success=="fail"),]
+table(match.success) # 19 fails, 3369 successes
+# complete_info_w_amplicon[which(match.success=="fail"),]
 
-failed.matches <- complete_info_w_amplicon[which(match.success=="fail"), "radtag"] # these were the failing markers
-failed.amplicons <- as.character(droplevels(failed.matches))
-failed.amplicons
+# failed.matches <- complete_info_w_amplicon[which(match.success=="fail"), "radtag"] # these were the failing markers
+# failed.amplicons <- as.character(droplevels(failed.matches))
+# failed.amplicons
 
 # Failed amplicons may manifest as NAs during the splitting, but more reliably, as a substantial difference from the 
 # expected location of the snp in the window as taken from the accession name.
+
 
 ##### 5. Final check of the expected snp position and the actual snp position #####
 colnames(complete_info_w_amplicon)
@@ -183,6 +182,7 @@ final_check <- separate(data = complete_info_w_amplicon, col = "amplicon_complet
 head(final_check)
 final_check$nchar_before_snp <- nchar(final_check$recalc_seq_before_snp)
 final_check$recalc_pos_snp_in_window <- final_check$nchar_before_snp + 1 
+colnames(final_check)
 head(final_check, n = 5)
 
 # # view
@@ -200,17 +200,81 @@ failed.matches2
 
 #### 6. Only keep the successful insertions ####
 colnames(complete_info_w_amplicon)
+dim(complete_info_w_amplicon)
+
+# Remove the failed matches from the object
+j <- NULL
 
 for(i in 1:length(failed.matches2)){
   j <- failed.matches2[i]
   print(j)
-  
-  # replace the poorly-located allele amplicon with an unedited amplicon
-  complete_info_w_amplicon[which(complete_info_w_amplicon[,"radtag"]==j), "amplicon_complete"] <- complete_info_w_amplicon[which(complete_info_w_amplicon[,"radtag"]==j), "seq"]
+
+  # remove the failed match amplicon from the dataframe
+  complete_info_w_amplicon <- complete_info_w_amplicon[ -c(which(complete_info_w_amplicon[,"radtag"]==j) ) , ]
 }
 
 
+dim(complete_info_w_amplicon)
 
+
+#### 7. Choose only the top Fst markers ####
+adaptive.loci <- read.csv("02_input_data/adaptive_loci_fst_for_amplicon_selection.csv", col.names = c("radtag","Fst"))
+neutral.loci <- read.csv("02_input_data/neutral_loci_fst_for_amplicon_selection.csv", col.names = c("radtag","Fst"))
+head(adaptive.loci)
+head(neutral.loci)
+
+# merge w/ existing complete_info_w_amplicons
+complete_info_w_amplicon_adaptive <- merge(x = complete_info_w_amplicon, y = adaptive.loci, by = "radtag")
+dim(adaptive.loci) # total number adaptive loci
+dim(complete_info_w_amplicon_adaptive) # total number that are found in the complete amplicons
+
+complete_info_w_amplicon_neutral <- merge(x = complete_info_w_amplicon, y = neutral.loci, by = "radtag")
+dim(neutral.loci) # total number neutral loci
+dim(complete_info_w_amplicon_neutral)
+head(complete_info_w_amplicon_neutral) # note that Fst is no longer in order, re-order by Fst
+# Sort by Fst
+complete_info_w_amplicon_neutral <- complete_info_w_amplicon_neutral[order(complete_info_w_amplicon_neutral$Fst, decreasing = T),]
+head(complete_info_w_amplicon_neutral)
+
+# How many adaptives do you have?
+dim(complete_info_w_amplicon_adaptive)[1]
+# How many neutrals to you need?
+number.neutral.needed <- 600 - dim(complete_info_w_amplicon_adaptive)[1]
+number.neutral.needed
+
+complete_info_w_amplicon_neutral_limited <- head(complete_info_w_amplicon_neutral, n = number.neutral.needed)
+dim(complete_info_w_amplicon_neutral_limited)
+
+
+# Combine the adaptive and neutral complete infos
+complete_info_final <- rbind(complete_info_w_amplicon_adaptive, complete_info_w_amplicon_neutral_limited)
+dim(complete_info_final)
+
+#### 8. Format the submission dataframe to only keep necessary columns ####
+colnames(submission.df) # these are the necessary columns
+colnames(complete_info_final) # these are what we have in total
+
+# # Make a couple extra columns needed for submission
+# begin <- rep("NA", times = nrow(complete_info_final))
+# end <- rep("NA", times = nrow(complete_info_final))
+
+# complete_info_final <- cbind(complete_info_final, begin, end)
+# colnames(complete_info_final)
+
+# Format into the submission format
+final <- complete_info_final[ , c("accn.name", "scaff", "begin", "end", "ref", "var", "strand", "mtype", "priority", "amplicon_complete")]
+head(final)
+
+# Write out result, this will be used for the submission
+version <- 0.3
+filename <- paste("06_output/amplicon_panel_v", version, ".csv", sep = "")
+write.csv(x = final, file = filename, quote = F, row.names = F)
+
+
+
+
+
+### OLD CODE ####
 
 ## This was an attempt to re-run identifying the correct location using the other side marker, but it didn't help
 # 
@@ -235,24 +299,8 @@ for(i in 1:length(failed.matches2)){
 # 
 
 
-
-
 #View radtag
-rad.tags[which(rad.tags$radtag=="Tpa_1251"),]
+#rad.tags[which(rad.tags$radtag=="Tpa_1251"),]
 
 # #Inspection
 # write.csv(x = complete_info_w_amplicon, file = "06_output/inspecting_results.csv", quote = F, row.names = F)
-
-colnames(submission.df)
-colnames(complete_info_w_amplicon)
-# make a couple extra columns needed for submission
-begin <- rep("NA", times = nrow(complete_info_w_amplicon))
-end <- rep("NA", times = nrow(complete_info_w_amplicon))
-
-complete_info_w_amplicon <- cbind(complete_info_w_amplicon, begin, end)
-colnames(complete_info_w_amplicon)
-
-final <- complete_info_w_amplicon[ , c("accn.name", "scaff", "begin", "end", "ref", "var", "strand", "mtype", "priority", "amplicon_complete")]
-head(final)
-
-write.csv(x = final, file = "06_output/complete_info_w_amplicon.csv", quote = F, row.names = F)
