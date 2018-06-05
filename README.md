@@ -179,30 +179,8 @@ Also need the text version of the amplicon panel:
 `awk 'BEGIN{RS=">"}{print $1"\t"$2;}' 06_output/tpac_all_amplicons.fa | tail -n+2 > 06_output/tpac_all_amplicons.txt`
 
 Then use the Rscript `01_scripts/collect_required_info_for_sub_form.R`    
+Followed by the Rscript `01_scripts/figuring_out_other_method_of_inserting_alleles.R`    
 
-This will finally output a file entitled `06_output/complete_info_w_amplicon.csv`    
-
-
-OLD CODE:
-#### Manual Adjustments if Required
-If there are some remaining difficult loci, these may require manual work.   
+This will finally output a file entitled `06_output/amplicon_panel_v<version_number>.csv`         
 
 
-May not do the following
-
-Determine which loci still require manual insertion of the allele:    
-`grep -vE '^accn.name' 06_output/complete_info_w_amplicon.csv | grep -vE '\[' - | awk -F, '{ print $1 }' - | awk -F'__' '{print $2}' - > 06_output/manual_adj_tag_names.txt`    
-
-...and which don't require adjustment:   
-`grep -vE '^accn.name' 06_output/complete_info_w_amplicon.csv | grep -E '\[' - | awk -F, '{ print $1 }' - | awk -F'__' '{print $2}' - > 06_output/no_adj_tag_names.txt`
-
-Use xargs to pull out the lines that need or do not need adjusting
-Adj:
-
-
-Open the radtags file (`06_output/tpac_amplicon_panel_rad_tags.csv`) and this file and manually edit any loci that need manual insertion.    
-
-
-
-Collect using xargs to keep order (relevant for next one):
-`cat 02_input_data/adaptive_loci_fst_for_amplicon_selection_name_only.txt | xargs -I{} grep -A1 {} 05_amplicons/completed_all_amplicons.fa | grep -vE '^--$' - > 05_amplicons/adaptive_amplicons.fa
