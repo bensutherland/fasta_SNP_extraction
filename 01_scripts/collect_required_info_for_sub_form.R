@@ -3,28 +3,29 @@
 
 #rm(list=ls())
 
-setwd("~/Documents/06_tpac/fasta_SNP_extraction_400bp/")
+setwd("~/Documents/06_tpac/fasta_SNP_extraction_400bp_second/")
 
 ##### 1. Import Data ####
 #### 1.A) Use the RAD tags file to get alleles ####
-rad.tags <- read.csv(file = "06_output/tpac_amplicon_panel_rad_tags.csv", header = F
+rad.tags <- read.csv(file = "06_output/tpac_all_amplicons_rad_tags.csv", header = F
                      , col.names = c("radtag","radlocus","snp.pos"))
 head(rad.tags)
 rad.tags <- rad.tags[,c("radtag","radlocus")] # only keep necessary columns
 head(rad.tags)
 
 # Earlier in the pipeline, an allele file was created from the first SNP in the above RAD tags file (via awk)
+# Note this must still correspond to the order of the above 'tpac_all_amplicons_rad_tags.csv' file
 alleles <- read.csv(file = "06_output/alleles_only.txt", header = F
                     , col.names = c("ref", "var"))
 head(alleles)
 
 # Combine these two files
 rad.tags.and.alleles <- cbind(rad.tags, alleles)
-head(rad.tags.and.alleles)
+head(rad.tags.and.alleles, n = 10)
+# Confirm they still match (i.e. were in the same order)
 
-
-#### 1. B) Use the fasta file to get the amplicon sequence and the position of the SNP (in amplicon window) from accn name ####
-fasta.txt <- read.table(file = "06_output/tpac_amplicon_panel_v0.2.txt", header = F
+#### 1. B) Use the amplicon text file to get the amplicon sequence and the position of the SNP (in amplicon window) from accn name ####
+fasta.txt <- read.table(file = "06_output/tpac_all_amplicons.txt", header = F
                     , sep = "\t", col.names = c("accn.name","seq"))
 head(fasta.txt)
 
@@ -79,7 +80,7 @@ rad.tags.and.alleles.sorted <- rad.tags.and.alleles[order(rad.tags.and.alleles$r
 fasta.txt.sorted  <- fasta.txt[order(fasta.txt$radtag),]
 scaff.info.sorted <- scaff.info[order(scaff.info$radtag), ]
 
-# Observe objects, note that the scaff has all of the scaffold info, not just the 600
+# Observe objects, composition and size
 head(rad.tags.and.alleles.sorted)
 head(fasta.txt.sorted)
 head(scaff.info.sorted)
