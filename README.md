@@ -165,25 +165,25 @@ Collect using xargs again:
 `cat 02_input_data/neutral_loci_fst_for_amplicon_selection_name_only.txt | xargs -I{} grep -A1 {} 05_amplicons/completed_all_amplicons.fa | grep -vE '^--$' - > 05_amplicons/neutral_amplicons.fa`
 
 Combine:   
-`cat 05_amplicons/neutral_amplicons.fa 05_amplicons/adaptive_amplicons.fa > > 06_output/tpac_all_amplicons.fa`     
+`cat 05_amplicons/neutral_amplicons.fa 05_amplicons/adaptive_amplicons.fa > 06_output/tpac_all_amplicons.fa`     
 
 #### Obtain the RAD tag records corresponding to the amplicon panel
 `grep -E '^>' 06_output/tpac_all_amplicons
 .fa | awk -F"__" '{ print $2 }' - | xargs -I{} grep {} 02_input_data/z-draft_input/input_loci.csv > 06_output/tpac_all_amplicons_rad_tags.csv`
 
-#### Export data for use in amplicon panel submission form
+#### Obtain the allele only data corresponding to the rad tags to be used in Rscript
 Will need the following 'alleles only' file for the Rscript:   
-`awk -F"[" '{ print $2 }' 06_output/tpac_amplicon_panel_rad_tags.csv
-| awk -F"]" '{ print $1 }' - | sed 's/\//,/g' - > 06_output/alleles_only.txt`
+`awk -F"[" '{ print $2 }' 06_output/tpac_all_amplicons_rad_tags.csv | awk -F"]" '{ print $1 }' - | sed 's/\//,/g' - > 06_output/alleles_only.txt`
 
 Also need the text version of the amplicon panel:   
-`awk 'BEGIN{RS=">"}{print $1"\t"$2;}' 06_output/tpac_amplicon_panel_v0.2.fa | tail -n+2 > 06_output/tpac_amplicon_panel_v0.2.txt`
+`awk 'BEGIN{RS=">"}{print $1"\t"$2;}' 06_output/tpac_all_amplicons.fa | tail -n+2 > 06_output/tpac_all_amplicons.txt`
 
 Then use the Rscript `01_scripts/collect_required_info_for_sub_form.R`    
 
 This will finally output a file entitled `06_output/complete_info_w_amplicon.csv`    
 
 
+OLD CODE:
 #### Manual Adjustments if Required
 If there are some remaining difficult loci, these may require manual work.   
 
