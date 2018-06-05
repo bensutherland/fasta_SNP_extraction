@@ -154,10 +154,8 @@ Collect using xargs to keep order (relevant for next one):
 How many? 
 `grep -cE '^>' 05_amplicons/adaptive_amplicons.fa`
 
-For a total of 600 amplicons, subtract this number from the 600 total and take that many records from the neutral markers below.    
 
 #### Obtain the neutral amplicons (in order of descending Fst)  
-Note that the neutral markers should be in order of descending Fst, where you will select the best ones first (the highest Fst first).    
 Get neutral target names:   
 `awk -F"," '{ print $1 }' 02_input_data/neutral_loci_fst_for_amplicon_selection.csv | grep -vE '^Loci_non' - > 02_input_data/neutral_loci_fst_for_amplicon_selection_name_only.txt`
 
