@@ -48,7 +48,7 @@ table(allele_isolated$side.to.use)
 
 #### 3. Obtain a str.size vector for matching the region in amplicon ####
 # Set size of the matching vector string
-str.size <- 14
+str.size <- 20
 
 # Use for loop to obtain the matching vector from either before or after the polymorphism
 extract.piece <- NULL
@@ -172,14 +172,8 @@ failed.matches <- complete_info_w_amplicon[which(match.success=="fail"), "radtag
 failed.amplicons <- as.character(droplevels(failed.matches))
 failed.amplicons
 
-# Changes to order (see Point 2)
-# Tpa_1696 change to "after"
-# Tpa_6681 change to "before"
-
-# Any instances where there is an NA at either before or after marker mean that the marker.vector did not work, potentially because
-# of other polymorphisms between the ref genome and the RAD seq consensus sequence.
-# It is very few instances, but nonetheless, something has to be done to prevent these flawed ones from messing up the
-# paste commands (creates a false chimeric sequence)
+# Failed amplicons may manifest as NAs during the splitting, but more reliably, as a substantial difference from the 
+# expected location of the snp in the window as taken from the accession name.
 
 ##### 5. Final check of the expected snp position and the actual snp position #####
 colnames(complete_info_w_amplicon)
@@ -191,95 +185,74 @@ final_check$nchar_before_snp <- nchar(final_check$recalc_seq_before_snp)
 final_check$recalc_pos_snp_in_window <- final_check$nchar_before_snp + 1 
 head(final_check, n = 5)
 
-# view
-final_check[, c("snp.pos.in.window","recalc_pos_snp_in_window")]
+# # view
+# final_check[, c("snp.pos.in.window","recalc_pos_snp_in_window")]
 
 str(final_check)
 final_check$snp.pos.in.window  <- as.numeric(as.character(final_check$snp.pos.in.window))
+
 # Calculate how far off the expected and observed snp position are
 number.digits.off <- final_check$recalc_pos_snp_in_window - final_check$snp.pos.in.window
+number.digits.off
 failed.matches2 <- final_check[which(abs(number.digits.off) > 5 ), "radtag" ]
 failed.matches2 <- as.character(droplevels(failed.matches2))
 failed.matches2
 
-# failed.matches.first.pass.bck <- failed.matches2
-
-
-# ##### HARD CODED CHANGES TO AVOID FAILED MATCHINGS ####
-# # Tpa_1696 change to "after"
-# allele_isolated[which(allele_isolated$radtag=="Tpa_1696"), "side.to.use"] <- "after"
-# # Tpa_6681 change to "before"
-# allele_isolated[which(allele_isolated$radtag=="Tpa_6681"), "side.to.use"] <- "before"
-# failed.matches
-
-
-allele_isolated$radtag <- as.character(allele_isolated$radtag) 
-str(allele_isolated)
+#### 6. Only keep the successful insertions ####
+colnames(complete_info_w_amplicon)
 
 for(i in 1:length(failed.matches2)){
   j <- failed.matches2[i]
   print(j)
   
-  # If it was originally said to be an 'after', choose 'before'
-  if(allele_isolated[which(allele_isolated[,"radtag"]==j), "side.to.use"]=="after"){ 
-    print(c(j, " was originally an 'after' match"))
-    allele_isolated[which(allele_isolated[,"radtag"]==j), "side.to.use"] <- "before"
-    print(c(j, "is now a 'before' match"))
-  } else {
-    allele_isolated[which(allele_isolated[,"radtag"]==j), "side.to.use"] <- "after"
-    print(c(j, "was originally a 'before' match"))
-    print(c(j, "is now an 'after' match"))
-  }
+  # replace the poorly-located allele amplicon with an unedited amplicon
+  complete_info_w_amplicon[which(complete_info_w_amplicon[,"radtag"]==j), "amplicon_complete"] <- complete_info_w_amplicon[which(complete_info_w_amplicon[,"radtag"]==j), "seq"]
 }
 
-### Now go back up to Step 3 and re-run
 
 
 
+## This was an attempt to re-run identifying the correct location using the other side marker, but it didn't help
+# 
+# allele_isolated$radtag <- as.character(allele_isolated$radtag) 
+# str(allele_isolated)
+# 
+# for(i in 1:length(failed.matches2)){
+#   j <- failed.matches2[i]
+#   print(j)
+#   
+#   # If it was originally said to be an 'after', choose 'before'
+#   if(allele_isolated[which(allele_isolated[,"radtag"]==j), "side.to.use"]=="after"){ 
+#     print(c(j, " was originally an 'after' match"))
+#     allele_isolated[which(allele_isolated[,"radtag"]==j), "side.to.use"] <- "before"
+#     print(c(j, "is now a 'before' match"))
+#   } else {
+#     allele_isolated[which(allele_isolated[,"radtag"]==j), "side.to.use"] <- "after"
+#     print(c(j, "was originally a 'before' match"))
+#     print(c(j, "is now an 'after' match"))
+#   }
+# }
+# 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# identify the 'NA' ones that need manual identification
-complete_info_w_amplicon[which(is.na(complete_info_w_amplicon$after_marker)==T), "radtag"]
 
 #View radtag
-rad.tags[which(rad.tags$radtag=="Tpa_6681"),]
+rad.tags[which(rad.tags$radtag=="Tpa_1251"),]
 
-#Inspection
-write.csv(x = complete_info_w_amplicon, file = "06_output/inspecting_results.csv", quote = F, row.names = F)
+# #Inspection
+# write.csv(x = complete_info_w_amplicon, file = "06_output/inspecting_results.csv", quote = F, row.names = F)
 
 colnames(submission.df)
 colnames(complete_info_w_amplicon)
+# make a couple extra columns needed for submission
+begin <- rep("NA", times = nrow(complete_info_w_amplicon))
+end <- rep("NA", times = nrow(complete_info_w_amplicon))
 
-final <- merge(x = submission.df, y = complete_info_w_amplicon, by = "accn.name")
-colnames(final)
+complete_info_w_amplicon <- cbind(complete_info_w_amplicon, begin, end)
+colnames(complete_info_w_amplicon)
 
-submission.df <- final[, c("accn.name","scaff","snp.pos.in.window.x", "snp.pos.in.window.x", "ref", "var", "strand", "mtype","amplicon_complete")]
+final <- complete_info_w_amplicon[ , c("accn.name", "scaff", "begin", "end", "ref", "var", "strand", "mtype", "priority", "amplicon_complete")]
+head(final)
 
-head(submission.df)
-
-# Select columns needed
-submission.df <- submission.df[,c("accn.name","scaff","snp.pos.in.window","snp.pos.in.window","ref","var","strand","mtype","seq")]
+write.csv(x = final, file = "06_output/complete_info_w_amplicon.csv", quote = F, row.names = F)
