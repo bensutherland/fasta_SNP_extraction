@@ -2,7 +2,7 @@
 # Assumes that your rad locus file and amplicon file are in the same orientation
 
 # rm(list=ls())
-setwd("~/Documents/06_tpac/fasta_SNP_extraction_400bp_second//")
+setwd("~/Documents/06_tpac/fasta_SNP_extraction_400bp_third_try")
 
 # Load libraries
 require(tidyr)
@@ -41,7 +41,7 @@ head(side.to.use)
 # Combine this specification to the isolated alleles
 allele_isolated <- cbind(allele_isolated, side.to.use)
 head(allele_isolated)
-table(allele_isolated$side.to.use)
+table(allele_isolated$side.to.use) # 1516 after; 1872 before
 
 
 #### 3. Obtain a str.size vector for matching the region in amplicon ####
@@ -185,11 +185,13 @@ final_check$recalc_pos_snp_in_window <- final_check$nchar_before_snp + 1
 colnames(final_check)
 head(final_check, n = 5)
 
-# # view
-# final_check[, c("snp.pos.in.window","recalc_pos_snp_in_window")]
+# Keep the recal_pos_snp_in_window as an object
+colnames(final_check)
+necess.posit.info <- final_check[, c("radtag", "snp.pos.in.window","recalc_pos_snp_in_window")]
 
 str(final_check)
 final_check$snp.pos.in.window  <- as.numeric(as.character(final_check$snp.pos.in.window))
+str(final_check)
 
 # Calculate how far off the expected and observed snp position are
 number.digits.off <- final_check$recalc_pos_snp_in_window - final_check$snp.pos.in.window
@@ -240,7 +242,7 @@ head(complete_info_w_amplicon_neutral)
 dim(complete_info_w_amplicon_adaptive)[1]
 # How many neutrals to you need?
 number.neutral.needed <- 600 - dim(complete_info_w_amplicon_adaptive)[1]
-number.neutral.needed
+number.neutral.needed # 419
 
 complete_info_w_amplicon_neutral_limited <- head(complete_info_w_amplicon_neutral, n = number.neutral.needed)
 dim(complete_info_w_amplicon_neutral_limited)
@@ -250,23 +252,27 @@ dim(complete_info_w_amplicon_neutral_limited)
 complete_info_final <- rbind(complete_info_w_amplicon_adaptive, complete_info_w_amplicon_neutral_limited)
 dim(complete_info_final)
 
+# Attach the 'recalc_pos_snp_in_window'
+complete_info_final <- merge(x = complete_info_final, y = necess.posit.info, by = "radtag")
+head(complete_info_final)
+
+
 #### 8. Format the submission dataframe to only keep necessary columns ####
-colnames(submission.df) # these are the necessary columns
+#NEEDED: marker ID, ref genome scaff, begin pos, end pos, ref allele, variant allele, strand, marker type, priority, seq
 colnames(complete_info_final) # these are what we have in total
 
-# # Make a couple extra columns needed for submission
-# begin <- rep("NA", times = nrow(complete_info_final))
-# end <- rep("NA", times = nrow(complete_info_final))
-
-# complete_info_final <- cbind(complete_info_final, begin, end)
-# colnames(complete_info_final)
-
 # Format into the submission format
-final <- complete_info_final[ , c("accn.name", "scaff", "begin", "end", "ref", "var", "strand", "mtype", "priority", "amplicon_complete")]
+final <- complete_info_final[ , c("accn.name", "scaff", "recalc_pos_snp_in_window", "recalc_pos_snp_in_window", "ref", "var", "strand", "mtype", "priority", "amplicon_complete")]
+head(final)
+
+# Shorten the amplicon name
+final$accn.name <- gsub(x = 
+       gsub(x = final$accn.name, pattern = ".*Tpa", replacement = "Tpa")
+     , pattern = "\\__.*" , replacement = "")
 head(final)
 
 # Write out result, this will be used for the submission
-version <- 0.3
+version <- 0.4
 filename <- paste("06_output/amplicon_panel_v", version, ".csv", sep = "")
 write.csv(x = final, file = filename, quote = F, row.names = F)
 
