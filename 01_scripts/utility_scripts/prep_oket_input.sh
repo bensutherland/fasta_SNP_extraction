@@ -1,19 +1,19 @@
 #!/bin/bash
-# Prepare three input files containing chum sequences for amplicon development
+# Prepare input files containing chum sequences for amplicon development
 # Will produce "02_raw_data/all_input_marker_and_seq.csv"
 
-# Variables
+# Global variables
 RAW_DATA="02_input_data"
 
 # Inputs
 SEEB_INPUT="Seeb"
 UW_INPUT="UW_GTseq"
 WDFW_INPUT="WDFW_GTseq"
+UW_SECOND_SET="UW_all" # this is to capture the 'not included' snps
 
 # Date and extension
-DATE_EXT="2018-10-05.csv"
-
-OUTPUT_EXT="marker_and_seq.csv"
+DATE_EXT="2018-10-05.csv" # essentially the input extension
+OUTPUT_EXT="marker_and_seq.csv" # the output extension
 
 ## Put all inputs into the same format
 # SEEB input
@@ -36,8 +36,19 @@ grep -vE '^Panel,' $RAW_DATA/$UW_INPUT"_"$DATE_EXT |
     # Keep only the required columns
     awk -F"," '{ print $2","$3}' - > $RAW_DATA/$UW_INPUT"_"$OUTPUT_EXT
 
+# UW input second set
+# Remove header
+grep -vE '^Panel,' $RAW_DATA/$UW_SECOND_SET"_"$DATE_EXT | 
+
+    # Only keep lines containing the 'not included' markers
+    grep 'not included' - | 
+
+    # Keep only the required columns
+    awk -F"," '{ print $2","$3 }' - > $RAW_DATA/$UW_SECOND_SET"_"$OUTPUT_EXT
+
+
 # WDFW input
-# Rename only
+# Replace the hyphen with an underscore to not disrupt future steps
 sed 's/\-/\_/g' $RAW_DATA/$WDFW_INPUT"_"$DATE_EXT > $RAW_DATA/$WDFW_INPUT"_"$OUTPUT_EXT
 
 ## Combine all data into one file
