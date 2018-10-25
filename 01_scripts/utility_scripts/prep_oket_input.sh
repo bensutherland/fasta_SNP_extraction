@@ -68,3 +68,13 @@ cat $RAW_DATA/$SEEB_INPUT"_"$OUTPUT_EXT \
     $RAW_DATA/$MGL_INPUT"_"$OUTPUT_EXT \
     > $RAW_DATA/"all_input_"$OUTPUT_EXT
 
+## Reporting
+echo "In the output there are the following number of markers:   "
+wc -l $RAW_DATA/"all_input_"$OUTPUT_EXT
+echo "Dropping deletion allele markers"
+
+## Remove deletion allele markers
+grep -v '-' $RAW_DATA/"all_input_"$OUTPUT_EXT > $RAW_DATA/"all_input_no_deletion_"$OUTPUT_EXT
+echo "There are now a total of:   "
+mv $RAW_DATA/"all_input_no_deletion_"$OUTPUT_EXT $RAW_DATA/"all_input_"$OUTPUT_EXT
+wc -l $RAW_DATA/"all_input_"$OUTPUT_EXT
