@@ -1,5 +1,6 @@
 # Identify a window around a SNP for loci aligned to a reference genome
 # Specifically built for T. pacificus project by Ben Sutherland (DFO) 2018-03-26
+# Also applied to other projects starting 2018-10-24
 # As usual, use at own risk, no guarantees on usefulness
 
 #### Front Matter ####
@@ -7,17 +8,21 @@
 # Clean space
 #rm(list=ls())
 
+# Todo: make possible to change species name of working directory
+species <- "oket"
+
 # Set working directory
-setwd("~/Documents/06_tpac/fasta_SNP_extraction")
+#setwd("~/Documents/06_tpac/fasta_SNP_extraction")
+setwd("~/Documents/07_oket/fasta_SNP_extraction")
 
 # Install packages
 #install.packages("stringr")
 library(stringr)
 
-
 #### 0.a Input data ####
 # Import single hit blast outfmt6 results
-data <- read.table("03_blast_out/prepared_tags_v_tpac-contigs_outfmt6_rem_multimap_sort_single_hit.txt")
+data.filename <- paste0("03_blast_out/prepared_tags_v_", species, "-contigs_outfmt6_rem_multimap_sort_single_hit.txt")
+data <- read.table(data.filename)
 head(data)
 colnames(data) <- c("qname","ref.name","ident","align.leng","mismatch","gapopen","qstart","qend","sstart","send","eval","bitscore")
 head(data)
@@ -50,7 +55,7 @@ data.collected <- merge(x = data.split, y = contig.length, by = "ref.name")
 dim(data.collected) # should be 3928
 head(data.collected)
 
-# Rename the new split data as data
+# Rename the new merged, split data as "data"
 data <- data.collected
 
 
@@ -155,7 +160,7 @@ head(data3)
 ### Avoid when SNP position is outside of the contig
 dim(data3)
 head(data3)
-table(data3$snp.spot < 1) # 21 instances
+table(data3$snp.spot < 1)
 
 # how many rows will be retained (note this shows rows and columns)
 dim(data3[data3$snp.spot > 1 , ])
