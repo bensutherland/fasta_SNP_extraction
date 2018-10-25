@@ -1,13 +1,18 @@
 # Rename accessions in a fasta
 # Specifically built for T. pacificus project by Ben Sutherland (DFO) 2018-03-26
+# Also applied to other species as of 2018-10-24
 # As usual, use at own risk, no guarantees on usefulness
 
 #### Front Matter ####
 # Clean space
 #rm(list=ls())
 
+# Set species shortform
+species <- "oket"
+
 # Set working directory
-setwd("~/Documents/06_tpac/fasta_SNP_extraction/")
+#setwd("~/Documents/06_tpac/fasta_SNP_extraction/")
+setwd("~/Documents/07_oket/fasta_SNP_extraction/")
 
 # Install packages
 #install.packages("stringr")
@@ -21,7 +26,8 @@ total.window
 
 #### 0. Input data ####
 # Import blast outfmt6 results
-data <- read.table("04_extraction/tpac_amplicon_approx_by_BLAST.txt")
+data.filename <- paste0("04_extraction/", species, "_amplicon_approx_by_BLAST.txt")
+data <- read.table(data.filename)
 head(data)
 colnames(data) <- c("match.id", "seq")
 head(data)
@@ -90,8 +96,8 @@ data.all2[ which(data.all2$for.or.rev=="rev" & data.all2$snp.pos.in.window=="200
 
 
 ###### Separate output for reverse complement target regions and forward regions
-dim(data.all2[data.all2$for.or.rev=="rev", ]) # 1922
-dim(data.all2[data.all2$for.or.rev=="for", ]) # 1952
+dim(data.all2[data.all2$for.or.rev=="rev", ])
+dim(data.all2[data.all2$for.or.rev=="for", ])
 
 
 # Get the needed pieces for the name
