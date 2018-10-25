@@ -2,7 +2,10 @@
 # Assumes that your rad locus file and amplicon file are in the same orientation
 
 # rm(list=ls())
-setwd("~/Documents/06_tpac/fasta_SNP_extraction_400bp_third_try")
+
+# Set working directory
+setwd("~/Documents/07_oket/fasta_SNP_extraction")
+# setwd("~/Documents/06_tpac/fasta_SNP_extraction_400bp_third_try")
 
 # Load libraries
 require(tidyr)
@@ -13,16 +16,24 @@ load(file = "06_output/submission_data_part_1.RData")
 
 #### 1. Isolate the first polymorphism in the RAD tag ####
 head(rad.tags)
+# side: fix an error in oket file:
+rad.tags$radlocus <- gsub(pattern = "}", replacement = "]", x = rad.tags$radlocus)
+dim(rad.tags)
 
 # Take out the section before the first square brackets
-first.piece.extracted <- separate(data = rad.tags, col = "radlocus", into = c("before.snp", "after.snp"), sep = "\\[" )
+first.piece.extracted <- separate(data = rad.tags
+                                  , col = "radlocus", into = c("before.snp", "after.snp"), sep = "\\[" )
 # expect warnings as it will read up to the second instance then stop
 head(first.piece.extracted)
+colnames(first.piece.extracted)
+dim(first.piece.extracted)
 
 # Take out the section after the first square brackets
-allele_isolated <- separate(data = first.piece.extracted, col = "after.snp", into = c("allele","after.snp"), sep ="\\]")
-head(allele_isolated)
-
+allele_isolated <- separate(data = first.piece.extracted
+                            , col = "after.snp", into = c("allele","after.snp"), sep ="\\]")
+head(allele_isolated, n = 2)
+colnames(allele_isolated)
+dim(allele_isolated)
 
 #### 2. Determine which flanking region is longer in the rad locus (before or after) ####
 # For loop to find whether before or after flanking sequence is longer
@@ -37,11 +48,31 @@ for(i in 1:nrow(allele_isolated)){
 }
 
 head(side.to.use)
+length(side.to.use)
 
 # Combine this specification to the isolated alleles
 allele_isolated <- cbind(allele_isolated, side.to.use)
 head(allele_isolated)
-table(allele_isolated$side.to.use) # 1516 after; 1872 before
+table(allele_isolated$side.to.use)
+
+###### HAND EDIT SECTION #####
+# This is a hacky solution, but will allow you to edit whether you will use the before or after manually, if it fails later #
+# to.edit <- "Oki_RAD41030_31"
+failed.amplicons
+
+failed.of.interest <- NULL
+for(i in 1:length(failed.amplicons)){
+  
+  # identify which row working on
+  failed.of.interest <- failed.amplicons[i]
+  print(failed.of.interest)
+  
+  # If statement to change before to after..
+  if( allele_isolated[which(allele_isolated$radtag==failed.of.interest), "side.to.use"] == "before" ){
+    allele_isolated[which(allele_isolated$radtag==failed.of.interest), "side.to.use"] <- "after"
+  } else { allele_isolated[which(allele_isolated$radtag==failed.of.interest), "side.to.use"] <- "before"
+  }
+}
 
 
 #### 3. Obtain a str.size vector for matching the region in amplicon ####
@@ -220,42 +251,46 @@ dim(complete_info_w_amplicon)
 
 
 #### 7. Choose only the top Fst markers ####
-adaptive.loci <- read.csv("02_input_data/adaptive_loci_fst_for_amplicon_selection.csv", col.names = c("radtag","Fst"))
-neutral.loci <- read.csv("02_input_data/neutral_loci_fst_for_amplicon_selection.csv", col.names = c("radtag","Fst"))
-head(adaptive.loci)
-head(neutral.loci)
+### THE FOLLOWING COMMENTED LINES WERE SPECIFIC TO TPAC ###
+# adaptive.loci <- read.csv("02_input_data/adaptive_loci_fst_for_amplicon_selection.csv", col.names = c("radtag","Fst"))
+# neutral.loci <- read.csv("02_input_data/neutral_loci_fst_for_amplicon_selection.csv", col.names = c("radtag","Fst"))
+# head(adaptive.loci)
+# head(neutral.loci)
+# 
+# # merge w/ existing complete_info_w_amplicons
+# complete_info_w_amplicon_adaptive <- merge(x = complete_info_w_amplicon, y = adaptive.loci, by = "radtag")
+# dim(adaptive.loci) # total number adaptive loci
+# dim(complete_info_w_amplicon_adaptive) # total number that are found in the complete amplicons
+# 
+# complete_info_w_amplicon_neutral <- merge(x = complete_info_w_amplicon, y = neutral.loci, by = "radtag")
+# dim(neutral.loci) # total number neutral loci
+# dim(complete_info_w_amplicon_neutral)
+# head(complete_info_w_amplicon_neutral) # note that Fst is no longer in order, re-order by Fst
+# # Sort by Fst
+# complete_info_w_amplicon_neutral <- complete_info_w_amplicon_neutral[order(complete_info_w_amplicon_neutral$Fst, decreasing = T),]
+# head(complete_info_w_amplicon_neutral)
+# 
+# # How many adaptives do you have?
+# dim(complete_info_w_amplicon_adaptive)[1]
+# # How many neutrals to you need?
+# number.neutral.needed <- 600 - dim(complete_info_w_amplicon_adaptive)[1]
+# number.neutral.needed # 419
+# 
+# complete_info_w_amplicon_neutral_limited <- head(complete_info_w_amplicon_neutral, n = number.neutral.needed)
+# dim(complete_info_w_amplicon_neutral_limited)
 
-# merge w/ existing complete_info_w_amplicons
-complete_info_w_amplicon_adaptive <- merge(x = complete_info_w_amplicon, y = adaptive.loci, by = "radtag")
-dim(adaptive.loci) # total number adaptive loci
-dim(complete_info_w_amplicon_adaptive) # total number that are found in the complete amplicons
+# # Combine the adaptive and neutral complete infos
+# complete_info_final <- rbind(complete_info_w_amplicon_adaptive, complete_info_w_amplicon_neutral_limited)
+# dim(complete_info_final)
 
-complete_info_w_amplicon_neutral <- merge(x = complete_info_w_amplicon, y = neutral.loci, by = "radtag")
-dim(neutral.loci) # total number neutral loci
-dim(complete_info_w_amplicon_neutral)
-head(complete_info_w_amplicon_neutral) # note that Fst is no longer in order, re-order by Fst
-# Sort by Fst
-complete_info_w_amplicon_neutral <- complete_info_w_amplicon_neutral[order(complete_info_w_amplicon_neutral$Fst, decreasing = T),]
-head(complete_info_w_amplicon_neutral)
+### END SPECIFIC TO TPAC ###
 
-# How many adaptives do you have?
-dim(complete_info_w_amplicon_adaptive)[1]
-# How many neutrals to you need?
-number.neutral.needed <- 600 - dim(complete_info_w_amplicon_adaptive)[1]
-number.neutral.needed # 419
-
-complete_info_w_amplicon_neutral_limited <- head(complete_info_w_amplicon_neutral, n = number.neutral.needed)
-dim(complete_info_w_amplicon_neutral_limited)
-
-
-# Combine the adaptive and neutral complete infos
-complete_info_final <- rbind(complete_info_w_amplicon_adaptive, complete_info_w_amplicon_neutral_limited)
-dim(complete_info_final)
+complete_info_final <- complete_info_w_amplicon # just to match the steps above
 
 # Attach the 'recalc_pos_snp_in_window'
 complete_info_final <- merge(x = complete_info_final, y = necess.posit.info, by = "radtag")
 head(complete_info_final)
-
+dim(complete_info_final)
 
 #### 8. Format the submission dataframe to only keep necessary columns ####
 #NEEDED: marker ID, ref genome scaff, begin pos, end pos, ref allele, variant allele, strand, marker type, priority, seq
@@ -266,17 +301,27 @@ final <- complete_info_final[ , c("accn.name", "scaff", "recalc_pos_snp_in_windo
 head(final)
 
 # Shorten the amplicon name
-final$accn.name <- gsub(x = 
-       gsub(x = final$accn.name, pattern = ".*Tpa", replacement = "Tpa")
-     , pattern = "\\__.*" , replacement = "")
-head(final)
+### AGAIN, SPECIFIC TO TPAC ###
+# final$accn.name <- gsub(x = 
+#        gsub(x = final$accn.name, pattern = ".*Tpa", replacement = "Tpa")
+#      , pattern = "\\__.*" , replacement = "")
+# head(final)
+### END SPECIFIC TO TPAC
+
+# Shorten the amplicon name
+head(final$accn.name)
+dim(final)
+split.accn.name <- str_split_fixed(string = final$accn.name, pattern = "__", n = 4)
+new.accn.name <- as.character(split.accn.name[, 2])
+final$accn.name <- new.accn.name
 
 # Write out result, this will be used for the submission
-version <- 0.4
-filename <- paste("06_output/amplicon_panel_v", version, ".csv", sep = "")
+amplicon.panel.version <- 0.1
+filename <- paste("06_output/", species, "_amplicon_panel_v", amplicon.panel.version, ".csv", sep = "")
 write.csv(x = final, file = filename, quote = F, row.names = F)
 
 
+# now go to terminal and check a few to be convinced it worked..
 
 
 
