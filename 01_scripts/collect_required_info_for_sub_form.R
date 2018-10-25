@@ -3,15 +3,23 @@
 
 #rm(list=ls())
 
-setwd("~/Documents/06_tpac/fasta_SNP_extraction_400bp_second/")
+# Set working directory
+setwd("~/Documents/07_oket/fasta_SNP_extraction")
+# setwd("~/Documents/06_tpac/fasta_SNP_extraction_400bp_second/")
+
+# Set species
+species <- "oket"
 
 ##### 1. Import Data ####
 #### 1.A) Use the RAD tags file to get alleles ####
-rad.tags <- read.csv(file = "06_output/tpac_all_amplicons_rad_tags.csv", header = F
+rad.tags.filename <- paste0("06_output/", species, "_all_amplicons_rad_tags.csv")
+rad.tags <- read.csv(file = rad.tags.filename , header = F
                      , col.names = c("radtag","radlocus","snp.pos"))
 head(rad.tags)
 rad.tags <- rad.tags[,c("radtag","radlocus")] # only keep necessary columns
 head(rad.tags)
+dim(rad.tags)
+length(unique(rad.tags$radtag))
 
 # Earlier in the pipeline, an allele file was created from the first SNP in the above RAD tags file (via awk)
 # Note this must still correspond to the order of the above 'tpac_all_amplicons_rad_tags.csv' file
@@ -25,15 +33,24 @@ head(rad.tags.and.alleles, n = 10)
 # Confirm they still match (i.e. were in the same order)
 
 #### 1. B) Use the amplicon text file to get the amplicon sequence and the position of the SNP (in amplicon window) from accn name ####
-fasta.txt <- read.table(file = "06_output/tpac_all_amplicons.txt", header = F
+fasta.txt.filename <- paste0("06_output/", species, "_all_amplicons.txt")
+fasta.txt <- read.table(file = fasta.txt.filename, header = F
                     , sep = "\t", col.names = c("accn.name","seq"))
 head(fasta.txt)
 
 # i) For matching purposes, extract the radtag name from accn.name
-radtag <-      gsub(x = 
-                      gsub(x = fasta.txt$accn.name, pattern = ".*Tpa", replacement = "Tpa")
-                            , pattern = "\\__.*" , replacement = "")
+# The radtag name is the second field when separated by '__'
+# Assumes four fields: contig name, radtag name, position of snp, original orientation
+split.accn.name <- str_split_fixed(string = fasta.txt$accn.name, pattern = "__", n = 4)
+radtag <- as.character(split.accn.name[, 2])
 head(radtag)
+length(radtag)
+
+# OLD: Original for Tpac, not extensible. 
+# radtag <-      gsub(x = 
+#                       gsub(x = fasta.txt$accn.name, pattern = ".*Tpa", replacement = "Tpa")
+#                             , pattern = "\\__.*" , replacement = "")
+# head(radtag)
 
 # Combine this radtag name to the original fasta.txt
 fasta.txt <- cbind(radtag, fasta.txt)
@@ -41,15 +58,19 @@ head(fasta.txt)
 
 
 # ii) Extract the within-window SNP position from the accession name
-step1 <- gsub(x = fasta.txt$accn.name, pattern = ".*Tpa", replacement = "Tpa") # remove everything before Tpa
-head(step1)
-step2 <- gsub(x = step1, pattern = "\\__rev|\\__for", replacement = "") # remove the end 'for' or 'rev'
-head(step2)
-step3 <- gsub(x = step2, pattern = ".*\\__", replacement = "") # remove everything before the "__"
-head(step3)
-snp.pos.in.window <- step3
-rm(step1, step2, step3)
+snp.pos.in.window <- as.numeric(as.character(split.accn.name[,3]))
 head(snp.pos.in.window)
+
+## OLD: Not very extensible
+# step1 <- gsub(x = fasta.txt$accn.name, pattern = ".*Tpa", replacement = "Tpa") # remove everything before Tpa
+# head(step1)
+# step2 <- gsub(x = step1, pattern = "\\__rev|\\__for", replacement = "") # remove the end 'for' or 'rev'
+# head(step2)
+# step3 <- gsub(x = step2, pattern = ".*\\__", replacement = "") # remove everything before the "__"
+# head(step3)
+# snp.pos.in.window <- step3
+# rm(step1, step2, step3)
+# head(snp.pos.in.window)
 
 # Combine this window position to the original fasta.txt
 fasta.txt <- cbind(fasta.txt, snp.pos.in.window)
