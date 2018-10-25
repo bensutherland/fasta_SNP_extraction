@@ -166,8 +166,7 @@ Combine:
 `cat 05_amplicons/neutral_amplicons.fa 05_amplicons/adaptive_amplicons.fa > 06_output/tpac_all_amplicons.fa`     
 
 #### Obtain the RAD tag records corresponding to the amplicon panel
-`grep -E '^>' 06_output/tpac_all_amplicons
-.fa | awk -F"__" '{ print $2 }' - | xargs -I{} grep {} 02_input_data/z-draft_input/input_loci.csv > 06_output/tpac_all_amplicons_rad_tags.csv`
+`grep -E '^>' 06_output/tpac_all_amplicons.fa | awk -F"__" '{ print $2 }' - | xargs -I{} grep {}"," 02_input_data/z-draft_input/input_loci.csv > 06_output/tpac_all_amplicons_rad_tags.csv`
 
 #### Obtain the allele only data corresponding to the rad tags to be used in Rscript
 Will need the following 'alleles only' file for the Rscript:   
