@@ -9,6 +9,8 @@ INPUT="all_input_marker_and_seq.csv"
 SNP_POS="first_snp_position.csv"
 OUTPUT="all_input_marker_and_seq_w_pos.csv"
 
+rm $RAW_DATA/$SNP_POS 
+
 ## Make file containing position of first SNP 
 awk -F"," '{ print $2 }' $RAW_DATA/$INPUT | 
     while read l
@@ -24,3 +26,7 @@ awk -F"," '{ print ">" $1 "-" $3 "\n" $2 }' $RAW_DATA/$OUTPUT > $RAW_DATA/${OUTP
  
 ## Remove characters ([]/) to prevent issues with BLAST
 sed 's/\[//g; s/\///g; s/]//g' $RAW_DATA/${OUTPUT%.csv}".fa" > $RAW_DATA/${OUTPUT%.csv}"_for_BLAST.fa"
+
+## Reporting at end
+echo "In total, there are the following number of records prepared for BLAST"
+grep -cE '^>' $RAW_DATA/${OUTPUT%.csv}"_for_BLAST.fa"
