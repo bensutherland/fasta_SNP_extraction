@@ -11,15 +11,23 @@ BLAST_OUTPUT_TWO_OR_LESS="03_blast_out/prepared_tags_v_oket-contigs_outfmt6_rem_
 BLAST_SORTED=${BLAST_OUTPUT_TWO_OR_LESS%.txt}"_sort.txt"
 OUTPUT="03_blast_out/prepared_tags_v_oket-contigs_outfmt6_rem_multimap_sort_single_hit.txt"
 
+# User set variables
+# Not currently working: 
+# MAX_HITS=4 # any marker that aligns MORE THAN this number will be put into the 'bad loci' file
+
 # BLAST search against genome
-blastn -db $GENOME -query $MARKERS -out $BLAST_OUTPUT -outfmt 6 -evalue 1e-20
+blastn -db $GENOME -query $MARKERS -out $BLAST_OUTPUT -outfmt 6 -evalue 1e-30
 
 # Identify bad loci
 awk '{ print $1 }' $BLAST_OUTPUT | 
     # sort BLAST output to identify when more than two hits
     sort -n | uniq -c | sort -nk1 | 
-    awk '$1 > 2 { print $2 }' - \
+    awk '$1 > 4 { print $2 }' - \
     > $BAD_LOCI 
+
+# Reporting bad loci
+echo "There are this many bad loci due to alignment more than " $MAX_HITS "times" 
+wc -l $BAD_LOCI
 
 # Extract bad loci from BLAST output
 grep -vf $BAD_LOCI $BLAST_OUTPUT > $BLAST_OUTPUT_TWO_OR_LESS 
