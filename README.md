@@ -32,12 +32,13 @@ Tpa_0002,GTTCGTTCAGTCTAAAGAGAATAATAGGACCGGGAGGTTTGTACTTATGTAATAGACACAC[A/T]CACAT
 Put genome contig assembly in `02_input_data/genome`:    
 `tpac_assembly/tpac_assembly_v1/tpac-contigs_min200.fa`   
 
-#### 0.1a Prepare input loci files (example from Eulachon project)
+#### 0.1a Prepare input loci files
 Concatenate input files, remove header, remove rest of line after first colon (occurs when multiple SNP locations):     
-`cat 02_input_data/tpac_adaptive_loci_2018-03-22.csv 02_input_data/tpac_neutral_loci_2018-03-22.csv | grep -vE 'Loci.name' - | awk -F":" '{ print $1 }' - > 02_input_data/input_loci.csv`
+`cat 02_input_data/<your_markers>.csv | grep -vE 'Loci_name' - | awk -F":" '{ print $1 }' - > 02_input_data/input_loci.csv`
 
 Determine the **position of the first SNP in the locus** based on presence of a square bracket:         
 `awk -F, '{ print $2 }' 02_input_data/input_loci.csv | while read l ; do echo $l | cut -d[ -f1 | wc -c ; done > 02_input_data/first_snp_position.csv`
+note: wc -c counts the end of line character, so the position given will be truly the SNP position w/ a 1-base counting system.    
 
 Add position to the original file   
 `paste -d, 02_input_data/input_loci.csv 02_input_data/first_snp_position.csv > 02_input_data/input_loci_w_pos.csv`   
@@ -48,9 +49,9 @@ Select columns of interest and put into FASTA format:
 Remove characters ([]/) to prevent issues with BLAST:    
 `sed 's/\[//g' 02_input_data/input_loci_w_pos.fa | sed 's/\///g' - | sed 's/]//g' - > 02_input_data/input_loci_w_pos_no_badchar.fa`
 
-Rename and delete intermediate files
-`mv 02_input_data/input_loci_w_pos_no_badchar.fa 02_input_data/prepared_tags.fa`
-`mv 02_input_data/*.csv 02_input_data/input_loci_w_pos.fa 02_input_data/z-draft_input/`
+Rename and delete intermediate files:      
+`mv 02_input_data/input_loci_w_pos_no_badchar.fa 02_input_data/prepared_tags.fa`       
+`mv 02_input_data/*.csv 02_input_data/input_loci_w_pos.fa 02_input_data/z-draft_input/`      
 
 The output looks like this, where the accession name is `'>markername-firstSNPposition'`:    
 ```
@@ -59,13 +60,13 @@ TCAGTGAGGCCCACTTCCTGGGTTTCCATCGACACACACACACCACGCTAGTGGATGGAGGGAAGGACGATTCAGGGA
 ```
 
 #### 0.1b Prepare genome for alignment    
-Fix the names of the contig assembly accessions, removing spaces, commas, '+' or dashes:         
-`sed 's/\ /\_/g' 02_input_data/genome/tpac-contigs_min200.fa | cut -d, -f1 | sed 's/\+//g' - | sed 's/\-//g' - > 02_input_data/genome/tpac-contigs_min200_renamed.fa`
+Fix the names of the contig assembly accessions, removing spaces, commas, '+' or dashes. Change the GENOME variable to the genome you will be using:     
+`GENOME="./02_input_data/genome/GCF_006149115.1_Oner_1.0_genomic.fna"; sed 's/\ /\_/g' $GENOME | cut -d, -f1 | sed 's/\+//g' - | sed 's/\-//g' - > ${GENOME%.f*}_renamed.fa`     
 
 Set up genome file as a blast database
-`makeblastdb -in ./02_input_data/genome/tpac-contigs_min200_renamed.fa -parse_seqids -dbtype nucl`
+`GENOME="./02_input_data/genome/GCF_006149115.1_Oner_1.0_genomic_renamed.fa; makeblastdb -in $GENOME -parse_seqids -dbtype nucl`
 
-Print name of contig, then the length of the contig (tab sep - to be used by R script below)     
+Print name of contig, then the length of the contig (tab sep, to be used by R script below)     
 `GENOME="02_input_data/genome/tpac-contigs_min200_renamed.fa" ; cat $GENOME | awk '$0 ~ ">" {print c; c=0;printf substr($0,2,100) "\t"; } $0 !~ ">" {c+=length($0);} END { print c; }' | tail -n+2 > 02_input_data/genome/ref_genome_seq_lengths.txt`
 
 This will be used by an Rscript below to ensure amplicon windows don't go beyond the contig size. 
@@ -76,20 +77,19 @@ This will be used by an Rscript below to ensure amplicon windows don't go beyond
 Use BLAST to align the loci to the genome:    
 `blastn -db ./02_input_data/genome/tpac-contigs_min200_renamed.fa -query ./02_input_data/prepared_tags.fa -out 03_blast_out/prepared_tags_v_tpac-contigs_outfmt6.txt -outfmt 6 -evalue 1e-20`
 
-Retain only those loci that have fewer than three significant hits:
+Retain only those loci that have two or fewer hits:
 ```
 # Find loci names that map more than two times:      
-awk '{ print $1 }' 03_blast_out/prepared_tags_v_tpac-contigs_outfmt6.txt | sort -n | uniq -c | sort -nk1 | awk '$1 > 2 { print $2 }' - > 03_blast_out/bad_loci.txt
+awk '{ print $1 }' 03_blast_out/prepared_tags_blast_outfmt6.txt | sort -n | uniq -c | sort -nk1 | awk '$1 > 2 { print $2 }' - > 03_blast_out/bad_loci.txt
 
 # Then extract these from the BLAST output:   
-grep -vf 03_blast_out/bad_loci.txt 03_blast_out/prepared_tags_v_tpac-contigs_outfmt6.txt > 03_blast_out/prepared_tags_v_tpac-contigs_outfmt6_rem_multimap.txt
+grep -vf 03_blast_out/bad_loci.txt 03_blast_out/prepared_tags_blast_outfmt6.txt > 03_blast_out/prepared_tags_blast_outfmt6_rem_multimap.txt
 
 # Sort the BLAST output:
-sort -k1,1 -k12,12gr -k11,11g -k3,3gr 03_blast_out/prepared_tags_v_tpac-contigs_outfmt6_rem_multimap.txt > 03_blast_out/prepared_tags_v_tpac-contigs_outfmt6_rem_multimap_sort.txt
+sort -k1,1 -k12,12gr -k11,11g -k3,3gr 03_blast_out/prepared_tags_blast_outfmt6_rem_multimap.txt > 03_blast_out/prepared_tags_blast_outfmt6_rem_multimap_sort.txt
 
 Keep only a single record per accession:    
-DATA="03_blast_out/prepared_tags_v_tpac-contigs_outfmt6_rem_multimap_sort.txt" ; for i in $(cut -f1 $DATA | sort -u); do grep -w -m 1 "$i" $DATA; don
-e > 03_blast_out/prepared_tags_v_tpac-contigs_outfmt6_rem_multimap_sort_single_hit.txt
+DATA="03_blast_out/prepared_tags_blast_outfmt6_rem_multimap_sort.txt" ; for i in $(cut -f1 $DATA | sort -u); do grep -w -m 1 "$i" $DATA; done > ${DATA%.txt}_single_hit.txt
 ```
 
 
