@@ -84,36 +84,26 @@ length(data$qname) # makes sure there are not any duplicates
 
 # Identify the location of the SNP on the ref genome within the set extraction window
 # note that this will make the snp.spot value, which will then be independent of whether the align is for.or.rev
-snp.spot <- rep(NA, times = nrow(data))
-for.or.rev <- rep(NA, times = nrow(data))
-
 for(i in 1:nrow(data)){
   
   # if subject is forward
   if(data$sstart[i] < data$send[i]){
-    snp.spot[i] <- (data$sstart[i] + (data$snp.pos[i] - data$qstart[i]))
-    for.or.rev[i] <- "for"
+    data$snp.spot[i] <- (data$sstart[i] + (data$snp.pos[i] - data$qstart[i]))
+    data$for.or.rev[i] <- "for"
   } 
   
   # if subject is reverse 
   if(data$sstart[i] > data$send[i]){
-    snp.spot[i] <- (data$sstart[i] - (data$snp.pos[i] - data$qstart[i]))
-    for.or.rev[i] <- "rev"
+    data$snp.spot[i] <- (data$sstart[i] - (data$snp.pos[i] - data$qstart[i]))
+    data$for.or.rev[i] <- "rev"
   }
 }
 
-head(snp.spot)
-head(for.or.rev)
-
-# Attach to the rest of the data
-head(data)
-all.data <- cbind(data, snp.spot, for.or.rev)
-
-head(all.data)
+head(data, n = 10)
 
 
-#### 2. Find X bp window range ####
-# Identify the range, but when the start position is less than X/2, use 0 instead. 
+#### 2. Find total.window bp window range ####
+# Identify the range, but when the start position is less than total.window/2, use 0 instead. 
 total.window <- 400
 half.window <- total.window/2
 
@@ -121,47 +111,38 @@ half.window <- total.window/2
 write.table(total.window, file="04_extraction/total_window_size.txt", quote = F)
 
 # rename as data2 (temporary)
-data2 <- all.data
+data2 <- data
 
 ## Avoid going passed the start of the contig:
 # How many targets are more than half.window bp in from the start of contig?
-table(data2$snp.spot > half.window)
-
-# Set nulls
-begin.region <- rep(NA, times = nrow(data2))
-end.region <- rep(NA, times = nrow(data2))
+table(data2$snp.spot > half.window) # FALSE means that the start of the contig is < half.window
 
 # Identify the range using for loop
 for(i in 1:nrow(data2)){
   
   # if snp.spot is greater than half.window bp into ref contig, do the full method
   if(data2$snp.spot[i] > half.window){
-    begin.region[i] <- data2$snp.spot[i] - half.window 
-    end.region[i] <- data2$snp.spot[i] + half.window 
+    data2$begin.region[i] <- data2$snp.spot[i] - half.window 
+    data2$end.region[i] <- data2$snp.spot[i] + half.window 
   } else {
     
   # if snp.spot is less than half.window bp into the contig, then start extraction window at the beginning of the contig
-    begin.region[i] <- 1
-    end.region[i] <- total.window
+    data2$begin.region[i] <- 1
+    data2$end.region[i] <- total.window
   }
 }
 
-# the following can be used to confirm the math
-head(begin.region, n = 20)
-head(data2$snp.spot, n = 20)
-head(end.region, n = 20)
-
-# Collect into datafile
-data3 <- cbind(data2, begin.region, end.region)
-
+data3 <- data2
 head(data3)
 
 ## Avoid going passed the end of the contig:
+## Correct the end.regions that go beyond the length of the contig
 # How many target windows are beyond the sequence length of the contig?
 table(data3$end.region > data3$length)
 
 # When position of end of target window is greater than length of the contig, use from the end to total.window bp before
 for(i in 1:nrow(data3)){
+  
   if(data3$end.region[i] > data3$length[i]){
     data3$end.region[i] <- data3$length[i]
     data3$begin.region[i] <- (data3$length[i] - (total.window-1))
@@ -174,36 +155,38 @@ head(data3)
 dim(data3)
 head(data3)
 table(data3$snp.spot < 1)
+data3[data3$snp.spot < 1 ,]  # worth investigating this when occurs (#TODO)
 
 # how many rows will be retained (note this shows rows and columns)
 dim(data3[data3$snp.spot > 1 , ])
 
 # Retain only the loci where the SNP is within the window
 data3 <- data3[data3$snp.spot > 1 , ]
+dim(data3)
 
-
-### Change all windows that extend before the start of the contig to instead start at 1
-# also change snp.spot accordingly as this window shifts
-#data.backup <- data3
-tail(head(data3, n = 20), n =10)
-
-shift.value <- NULL
-
-for(i in 1:nrow(data3)){
-  if(data3$begin.region[i] < 0){
-    # Find the value by which to shift the begin.region and snp.spot
-    shift.value <- abs(data3$begin.region[i]) + 1
-    
-    # Change the begin.region from a negative to +1 value
-    data3$begin.region[i] <- data3$begin.region[i] + shift.value
-    
-    # In parallel, also change the snp.spot value accordingly
-    data3$snp.spot[i] <- data3$snp.spot[i] + shift.value
-                               
-  }
-}
-
-tail(head(data3, n = 20), n =10)
+## This corrects the issue, rather than just dropping it
+# ### Change all windows that extend before the start of the contig to instead start at 1
+# # also change snp.spot accordingly as this window shifts
+# #data.backup <- data3
+# tail(head(data3, n = 20), n =10)
+# 
+# shift.value <- NULL
+# 
+# for(i in 1:nrow(data3)){
+#   if(data3$begin.region[i] < 0){
+#     # Find the value by which to shift the begin.region and snp.spot
+#     shift.value <- abs(data3$begin.region[i]) + 1
+# 
+#     # Change the begin.region from a negative to +1 value
+#     data3$begin.region[i] <- data3$begin.region[i] + shift.value
+# 
+#     # In parallel, also change the snp.spot value accordingly
+#     data3$snp.spot[i] <- data3$snp.spot[i] + shift.value
+# 
+#   }
+# }
+# 
+# tail(head(data3, n = 20), n =10)
 
 
 
