@@ -9,11 +9,13 @@
 #rm(list=ls())
 
 # Todo: make possible to change species name of working directory
-species <- "oket"
+#species <- "oket"
+species <- "oner"
 
 # Set working directory
 #setwd("~/Documents/06_tpac/fasta_SNP_extraction")
-setwd("~/Documents/07_oket/fasta_SNP_extraction")
+#setwd("~/Documents/07_oket/fasta_SNP_extraction")
+setwd("~/Documents/08_oner/fasta_SNP_extraction/")
 
 # Install packages
 #install.packages("stringr")
@@ -21,9 +23,10 @@ library(stringr)
 
 #### 0.a Input data ####
 # Import single hit blast outfmt6 results
-data.filename <- paste0("03_blast_out/prepared_tags_v_", species, "-contigs_outfmt6_rem_multimap_sort_single_hit.txt")
-data <- read.table(data.filename)
+data.filename <- list.files(path = "03_blast_out/", pattern = "_sort_single_hit.txt", full.names = T)
+data <- read.table(data.filename, stringsAsFactors = F)
 head(data)
+str(data)
 colnames(data) <- c("qname","ref.name","ident","align.leng","mismatch","gapopen","qstart","qend","sstart","send","eval","bitscore")
 head(data)
 
@@ -36,13 +39,23 @@ head(contig.length)
 
 #### 0.b Format Input data ####
 # Separate marker name from the position of the SNP
-split.mname <- str_split_fixed(string = data$qname, pattern = "-", n = 2)
-colnames(split.mname) <- c("mname","snp.pos")
-head(split.mname)
+split.mname <- strsplit(x = data$qname, split = "-(?=[^-]+$)", perl = TRUE)
+str(split.mname)
+
+split.mname.df <- as.data.frame(matrix(unlist(split.mname), nrow=length(split.mname), byrow = T), stringsAsFactors = F)
+colnames(split.mname.df) <- c("mname","snp.pos")
+head(split.mname.df)
 
 # Combine new split name with original dataframe
-data.split <- cbind(data, split.mname)
+data.split <- cbind(data, split.mname.df)
 head(data.split)
+data.split$checking.col <- substr(x = data.split$qname, start = 1, stop = nchar(data.split$mname))
+
+# Confirm that your cbind retained the correct order
+dim(data.split)
+table(data.split$mname==data.split$checking.col)["TRUE"] # Data checking
+table(data.split$mname==data.split$checking.col)["FALSE"] #should be NA
+
 
 # Make snp.pos into a numeric value
 data.split[,"snp.pos"] <- as.numeric(as.character(data.split$snp.pos))
@@ -52,7 +65,7 @@ str(data.split)
 dim(data.split)
 dim(contig.length)
 data.collected <- merge(x = data.split, y = contig.length, by = "ref.name")
-dim(data.collected) # should be 3928
+dim(data.collected)
 head(data.collected)
 
 # Rename the new merged, split data as "data"
@@ -61,7 +74,7 @@ data <- data.collected
 
 ### Characterize input data
 length(unique(data$qname))
-length(data$qname)
+length(data$qname) # makes sure there are not any duplicates
 
 
 #### 1. Identify the location of the SNP on the reference genome ####
