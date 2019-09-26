@@ -109,10 +109,23 @@ Collect the target sequence using the bed file (from above) and the genome assem
 `GENOME="02_input_data/genome/GCF_006149115.1_Oner_1.0_genomic_renamed.fa" ; bedtools getfasta -fi $GENOME -bed 04_extraction/ranges_for_amplicon_extraction.bed -fo 04_extraction/amplicon_approx_by_BLAST.fa`
 
 
-### 4. Rename amplicons
+### 4. Finalize amplicons
+#### 4.1. Prep fasta
 Turn fasta into tab separated file for ease of renaming amplicons:     
 `awk 'BEGIN{RS=">"}{print $1"\t"$2;}' 04_extraction/amplicon_approx_by_BLAST.fa | tail -n+2 > 04_extraction/amplicon_approx_by_BLAST.txt`
 Note: the tail -n+2 removes an empty first line (from https://www.biostars.org/p/235052/ )
+
+#### 4.2. Identify duplicates
+Identify duplicate markers based on genomic coordinates by runnning the Rscript `01_scripts/identify_duplicates.R`. This will produce the following:     
+* 05_amplicons/data_suppl_all_with_duplicates.csv (all information including duplicates)
+* 05_amplicons/dropped_duplicates_suppl_info.csv (all information without duplicates)
+* 05_amplicons/dropped_duplicates.csv (simple info with mname and match.id of dropped duplicates)
+
+#### 4.3 Remove the preferred duplicate (non-priority markers)
+Make files that contain top priority markers that you want to be sure not to remove. These should be in the format of CSV file, with `mname, source` where mname is the name of the marker, and the source is the name of the source for the marker. These need to all be named as `<source>_priority1_mnames.csv`
+
+
+
 
 Update the Rscript `identify_correspondence.r` with the priority list SNPs. These are in the format `mname, source.ID` without a header. These should be stored in `02_input_data`
 
