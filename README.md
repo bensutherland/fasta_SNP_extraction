@@ -122,7 +122,7 @@ Identify duplicate markers based on genomic coordinates by runnning the Rscript 
 * 05_amplicons/dropped_duplicates.csv (simple info with mname and match.id of dropped duplicates)
 
 #### 4.3 Remove the preferred duplicate (non-priority markers)
-Make files that contain top priority markers that you want to be sure not to remove. These should be in the format of CSV file, with `mname, source` where mname is the name of the marker, and the source is the name of the source for the marker. These need to all be named as `<source>_priority1_mnames.csv`
+Make files that contain top priority markers that you want to be sure not to remove. These should be in the format of CSV file, with `mname, source` where mname is the name of the marker, and the source is the name of the source for the marker. These need to all be named as `02_input_data/<source>_priority1_mnames.csv`
 
 
 
