@@ -3,7 +3,7 @@
 
 #### Front Matter ####
 # Clean space
-#rm(list=ls())
+# rm(list=ls())
 
 # Set species shortform
 #species <- "oket"
@@ -33,18 +33,22 @@ data.suppl$match.id <- paste(data.suppl$ref.name,":",data.suppl$begin.region,"-"
 data.suppl.all <- data.suppl
 head(data.suppl.all)
 
+data.suppl.all.before_drop <- data.suppl.all
+
 # Save this file for re-use later
 write.csv(x = data.suppl.all, file = "05_amplicons/data_suppl_all_with_duplicates.csv", quote = F, row.names = F)
-
-## Identify the names of the amplicons that will be dropped due to duplication
-dropped_duplicates.df <- data.suppl.all[duplicated(data.suppl.all$match.id), c("mname", "qname", "match.id")]
-# this will be used later, in case there are specific markers that need to be retained
-write.csv(x = dropped_duplicates.df, file = "05_amplicons/dropped_duplicates.csv", row.names = F, quote = F)
 
 # Remove the duplicated record from the data
 data.suppl.all <- data.suppl.all[order(data.suppl.all[, 'match.id']), ]
 data.suppl.all <- data.suppl.all[!duplicated(data.suppl.all$match.id), ]
 dim(data.suppl.all)
+head(data.suppl.all)
+
+## Identify the names of the amplicons that will be dropped due to duplication
+dropped_duplicates.df <- data.suppl.all.before_drop[!data.suppl.all.before_drop$mname %in% data.suppl.all$mname, c("mname", "qname", "match.id")]
+dim(dropped_duplicates.df)
+head(dropped_duplicates.df)
+write.csv(x = dropped_duplicates.df, file = "05_amplicons/dropped_duplicates.csv", row.names = F, quote = F)
 
 # As some marker sources are more valuable than others, we need to decide which of the duplicates to delete
 # use the following file for this purpose

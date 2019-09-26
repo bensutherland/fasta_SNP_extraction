@@ -27,12 +27,12 @@ dim(data_suppl_all.df)
 # This still contains all duplicate markers
 
 #### Dropping Duplicates ####
-# Dropping the duplicates of priority markers
+# Drop duplicates if they are not priority markers (as defined in previous script)
 data_suppl_all_no_priority_dups.df <- data_suppl_all.df[(!data_suppl_all.df$mname %in% marker_to_drop), ]
 dim(data_suppl_all.df)
 dim(data_suppl_all_no_priority_dups.df)
 
-# Remove the duplicated record from the data
+# Remove the duplicated record from the data based on coordinates
 data_suppl_all_no_priority_dups.df <- data_suppl_all_no_priority_dups.df[order(data_suppl_all_no_priority_dups.df[, 'match.id']), ]
 data_suppl_all_no_dups.df <- data_suppl_all_no_priority_dups.df[!duplicated(data_suppl_all_no_priority_dups.df$match.id), ]
 dim(data_suppl_all_no_dups.df)
