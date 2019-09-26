@@ -110,7 +110,7 @@ Collect the target sequence using the bed file (from above) and the genome assem
 
 
 ### 4. Finalize amplicons
-#### 4.1. Prep fasta
+#### 4.1. Convert from FASTA to txt file
 Turn fasta into tab separated file for ease of renaming amplicons:     
 `awk 'BEGIN{RS=">"}{print $1"\t"$2;}' 04_extraction/amplicon_approx_by_BLAST.fa | tail -n+2 > 04_extraction/amplicon_approx_by_BLAST.txt`
 Note: the tail -n+2 removes an empty first line (from https://www.biostars.org/p/235052/ )
@@ -124,16 +124,12 @@ Identify duplicate markers based on genomic coordinates by runnning the Rscript 
 #### 4.3 Remove the preferred duplicate (non-priority markers)
 Make files that contain top priority markers that you want to be sure not to remove. These should be in the format of CSV file, with `mname, source` where mname is the name of the marker, and the source is the name of the source for the marker. These need to all be named as `02_input_data/<source>_priority1_mnames.csv`
 
+#### 4.4. Actually drop the duplicates
+Use the script `01_scripts/drop_pref_dups_and_rename.R`
 
-
-
-Update the Rscript `identify_correspondence.r` with the priority list SNPs. These are in the format `mname, source.ID` without a header. These should be stored in `02_input_data`
-
-
-Use the Rscript `01_scripts/rename_amplicons.R`     
-This will take the identifier and sequence from `04_extraction/amplicon_approx_by_BLAST.txt` and the various output information from `04_extraction/ranges_for_amplicon_extraction.csv` and retain only relevant info for the name of the accessions.    
 Produces: `05_amplicons/all_fields.txt`
 
+#### 4.5. Format to output to FASTA
 Rename and format a fasta file with all amplicons:     
 `awk -F"\t" '{ print ">"$1"__"$2"__"$3"__"$4"\n" $5 }' 05_amplicons/all_fields.txt | sed 's/\:/_/g' - > 05_amplicons/all_amplicons.fa`
 Note the removal of the bed file character ':'.    
@@ -143,6 +139,7 @@ This will give you names showing:
 >refgenomeContigID_bedrange__queryLocus__SNPposInExtractedSegment__ForOrRevOrient    
 SEQUENCESEQUENCESEQUENCE
 ```
+
 ### 5. Separate into forward or reverse amplicon fasta files
 Select forwards and put into file:    
 `grep -A1 '__for' 05_amplicons/all_amplicons.fa | grep -vE '^--$' - > 05_amplicons/forward_amplicons.fa`
@@ -155,6 +152,10 @@ Using E. Normandeau's reverse complement script ( https://github.com/enormandeau
 
 Combine
 `cat 05_amplicons/forward_amplicons.fa 05_amplicons/revcomped_amplicons.fa > 05_amplicons/completed_all_amplicons.fa`
+
+
+## TODO: The rest is old ##
+
 
 ### 6. Select only the top amplicons
 Put final files for amplicon selection in input folder:     
