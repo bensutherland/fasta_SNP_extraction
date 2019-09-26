@@ -154,43 +154,43 @@ Combine
 `cat 05_amplicons/forward_amplicons.fa 05_amplicons/revcomped_amplicons.fa > 05_amplicons/completed_all_amplicons.fa`
 
 
-## TODO: The rest is old ##
-
-
 ### 6. Select only the top amplicons
-Put final files for amplicon selection in input folder:     
-`cp ../recd_files_JC/neutral_loci_fst_for_amplicon_selection.csv ./../recd_files_JC/adaptive_loci_fst_for_amplicon_selection.csv ./02_input_data/`
-
-#### Obtain the adaptive amplicons (as many as possible)
-Get target names only:     
-`awk -F"," '{ print $1 }' 02_input_data/adaptive_loci_fst_for_amplicon_selection.csv | grep -vE '^Loci_sig' - > 02_input_data/adaptive_loci_fst_for_amplicon_selection_name_only.txt`
-
-Collect using xargs to keep order (relevant for next one):    
-`cat 02_input_data/adaptive_loci_fst_for_amplicon_selection_name_only.txt | xargs -I{} grep -A1 {} 05_amplicons/completed_all_amplicons.fa | grep -vE '^--$' - > 05_amplicons/adaptive_amplicons.fa`
+Select out the top priority (1 and 2) amplicons:      
+`cat 02_input_data/*priority*.csv | awk -F, '{ print "__"$1"__" }' - | xargs -I{} grep -A1 {} 05_amplicons/completed_all_amplicons.fa | grep -vE '^--$' - > 05_amplicons/priority_amplicons_all.fa`
 
 How many? 
-`grep -cE '^>' 05_amplicons/adaptive_amplicons.fa`
+`grep -cE '^>' 05_amplicons/priority_amplicons_all.fa`
 
 
-#### Obtain the neutral amplicons (in order of descending Fst)  
-Get neutral target names:   
-`awk -F"," '{ print $1 }' 02_input_data/neutral_loci_fst_for_amplicon_selection.csv | grep -vE '^Loci_non' - > 02_input_data/neutral_loci_fst_for_amplicon_selection_name_only.txt`
+Put a file into `02_input_data/` with the name `<source>_priority3_mnames.csv`, with two columns, csv, mname and FST. Use the following to pull these priority three out of the fasta:       
+`awk -F, '{ print "__"$1"__" }' 02_input_data/*priority3*.csv | xargs -I{} grep -A1 {} 05_amplicons/completed_all_amplicons.fa | grep -vE '^--$' - > 05_amplicons/priority3_amplicons_all.fa`
 
-Collect using xargs again:    
-`cat 02_input_data/neutral_loci_fst_for_amplicon_selection_name_only.txt | xargs -I{} grep -A1 {} 05_amplicons/completed_all_amplicons.fa | grep -vE '^--$' - > 05_amplicons/neutral_amplicons.fa`
+How many?   
+`grep -cE '^>' 05_amplicons/priority3_amplicons_all.fa`
 
-Combine:   
-`cat 05_amplicons/neutral_amplicons.fa 05_amplicons/adaptive_amplicons.fa > 06_output/tpac_all_amplicons.fa`     
 
-#### Obtain the RAD tag records corresponding to the amplicon panel
-`grep -E '^>' 06_output/tpac_all_amplicons.fa | awk -F"__" '{ print $2 }' - | xargs -I{} grep {}"," 02_input_data/z-draft_input/input_loci.csv > 06_output/tpac_all_amplicons_rad_tags.csv`
+Finally, put a file into `02_input_data/<source>_priority4_mnames.csv` as above. This is sorted by FST. Take the number needed to make your full complement:     
+Currently assumed sorted with highest FST at top
+
+How many priority amplicons do you have? 
+`cat 05_amplicons/priority*.fa | grep -cE '^>' -`
+
+`awk -F, '{ print "__"$1"__" }' 02_input_data/larson_priority4_mnames.csv | xargs -I{} grep -A1 {} 05_amplicons/completed_all_amplicons.fa | grep -vE '^--$' -  > 05_amplicons/priority4_amplicons_all.fa`
+
+Add all together in descending importance order, then take the number of amplicons x 2 from the fasta:     
+`cat 05_amplicons/priority_amplicons_all.fa 05_amplicons/priority3_amplicons_all.fa 05_amplicons/priority4_amplicons_all.fa | head -n 1200 > 06_output/all_amplicons.fa`
+
+
+#### Obtain the sequence with allele information corresponding to the amplicon panel
+Collect the sequence and allele information from the first step for only those in the panel:      
+`grep -E '^>' 06_output/all_amplicons.fa | awk -F"__" '{ print $2 }' - | xargs -I{} grep {}"," 02_input_data/z-draft_input/input_loci.csv > 06_output/all_amplicons_seq_and_alleles.csv`
 
 #### Obtain the allele only data corresponding to the rad tags to be used in Rscript
 Will need the following 'alleles only' file for the Rscript:   
-`awk -F"[" '{ print $2 }' 06_output/tpac_all_amplicons_rad_tags.csv | awk -F"]" '{ print $1 }' - | sed 's/\//,/g' - > 06_output/alleles_only.txt`
+`awk -F"[" '{ print $2 }' 06_output/all_amplicons_seq_and_alleles.csv | awk -F"]" '{ print $1 }' - | sed 's/\//,/g' - > 06_output/alleles_only.txt`
 
 Also need the text version of the amplicon panel:   
-`awk 'BEGIN{RS=">"}{print $1"\t"$2;}' 06_output/tpac_all_amplicons.fa | tail -n+2 > 06_output/tpac_all_amplicons.txt`
+`awk 'BEGIN{RS=">"}{print $1"\t"$2;}' 06_output/all_amplicons.fa | tail -n+2 > 06_output/all_amplicons.txt`
 
 Then use the Rscript `01_scripts/collect_required_info_for_sub_form.R`   
 This Rscript will merge all the collective data, including the radtags, the amplicon text, the scaffold names.    
