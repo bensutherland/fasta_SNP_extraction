@@ -1,6 +1,4 @@
-# Rename accessions in a fasta
-# Specifically built for T. pacificus project by Ben Sutherland (DFO) 2018-03-26
-# Also applied to other species as of 2018-10-24
+# Identify duplicate based on genomic coordinates
 # As usual, use at own risk, no guarantees on usefulness
 
 #### Front Matter ####
@@ -53,4 +51,4 @@ dim(data.suppl.all)
 # Saved out after the duplicates have been removed
 write.csv(x = data.suppl.all, file = "05_amplicons/dropped_duplicates_suppl_info.csv", row.names = F, quote = F)
 
-### Go to "identify_correspondence.r" to identify which duplicate to drop
+### Go to next script
