@@ -106,16 +106,19 @@ The bedfile is for extraction, the .csv gives additional useful information for 
 
 ### 3. Collect amplicons
 Collect the target sequence using the bed file (from above) and the genome assembly, using bedtools:      
-`GENOME="02_input_data/genome/tpac-contigs_min200_renamed.fa" ; bedtools getfasta -fi $GENOME -bed 04_extraction/ranges_for_amplicon_extraction.bed -fo 04_extraction/tpac_amplicon_approx_by_BLAST.fa`
+`GENOME="02_input_data/genome/GCF_006149115.1_Oner_1.0_genomic_renamed.fa" ; bedtools getfasta -fi $GENOME -bed 04_extraction/ranges_for_amplicon_extraction.bed -fo 04_extraction/amplicon_approx_by_BLAST.fa`
 
 
 ### 4. Rename amplicons
 Turn fasta into tab separated file for ease of renaming amplicons:     
-`awk 'BEGIN{RS=">"}{print $1"\t"$2;}' 04_extraction/tpac_amplicon_approx_by_BLAST.fa | tail -n+2 > 04_extraction/tpac_amplicon_approx_by_BLAST.txt`     
+`awk 'BEGIN{RS=">"}{print $1"\t"$2;}' 04_extraction/amplicon_approx_by_BLAST.fa | tail -n+2 > 04_extraction/amplicon_approx_by_BLAST.txt`
 Note: the tail -n+2 removes an empty first line (from https://www.biostars.org/p/235052/ )
 
+Update the Rscript `identify_correspondence.r` with the priority list SNPs. These are in the format `mname, source.ID` without a header. These should be stored in `02_input_data`
+
+
 Use the Rscript `01_scripts/rename_amplicons.R`     
-This will take the identifier and sequence from `04_extraction/tpac_amplicon_approx_by_BLAST.txt` and the various output information from `04_extraction/ranges_for_amplicon_extraction.csv` and retain only relevant info for the name of the accessions.    
+This will take the identifier and sequence from `04_extraction/amplicon_approx_by_BLAST.txt` and the various output information from `04_extraction/ranges_for_amplicon_extraction.csv` and retain only relevant info for the name of the accessions.    
 Produces: `05_amplicons/all_fields.txt`
 
 Rename and format a fasta file with all amplicons:     
