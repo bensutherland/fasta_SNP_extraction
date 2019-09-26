@@ -8,11 +8,13 @@
 #rm(list=ls())
 
 # Set species shortform
-species <- "oket"
+#species <- "oket"
+species <- "oner"
 
 # Set working directory
 #setwd("~/Documents/06_tpac/fasta_SNP_extraction/")
-setwd("~/Documents/07_oket/fasta_SNP_extraction/")
+#setwd("~/Documents/07_oket/fasta_SNP_extraction/")
+setwd("~/Documents/08_oner/fasta_SNP_extraction/")
 
 # Install packages
 #install.packages("stringr")
@@ -25,83 +27,30 @@ total.window <- as.numeric(read.table(file="04_extraction/total_window_size.txt"
 total.window
 
 #### 0. Input data ####
-# Import blast outfmt6 results
-data.filename <- paste0("04_extraction/", species, "_amplicon_approx_by_BLAST.txt")
-data <- read.table(data.filename)
-head(data)
-colnames(data) <- c("match.id", "seq")
-head(data)
-
-# Remove exact duplicates of aligned markers
-dim(data)
-data <- data[order(data[,'match.id']), ]
-data <- data[!duplicated(data$match.id), ]
-dim(data) # removes several hits
-
-# Note that it doesn't matter which segment is deleted, as they are exact duplicates when removed
-
-# can separate the match.id if needed
-#data2 <- separate(data = data, col = "contig.name", into = c("contig", "range"), sep = "\\:")
-#head(data2)
-
-# Import other information to attach
+# Import other information about the amplicon to attach
 data.suppl <- read.csv(file = "04_extraction/ranges_for_amplicon_extraction.csv")
 head(data.suppl)
-match.id <- paste(data.suppl$ref.name,":",data.suppl$begin.region,"-",data.suppl$end.region, sep = "")
-data.suppl.all <- cbind(data.suppl, match.id)
+# Create a matching identifier to attach to the main data
+data.suppl$match.id <- paste(data.suppl$ref.name,":",data.suppl$begin.region,"-",data.suppl$end.region, sep = "")
+data.suppl.all <- data.suppl
 head(data.suppl.all)
 
-# As above, remove exact duplicates of aligned markers
+# Save this file for re-use later
+write.csv(x = data.suppl.all, file = "05_amplicons/data_suppl_all_with_duplicates.csv", quote = F, row.names = F)
+
+## Identify the names of the amplicons that will be dropped due to duplication
+dropped_duplicates.df <- data.suppl.all[duplicated(data.suppl.all$match.id), c("mname", "qname", "match.id")]
+# this will be used later, in case there are specific markers that need to be retained
+write.csv(x = dropped_duplicates.df, file = "05_amplicons/dropped_duplicates.csv", row.names = F, quote = F)
+
+# Remove the duplicated record from the data
 data.suppl.all <- data.suppl.all[order(data.suppl.all[, 'match.id']), ]
 data.suppl.all <- data.suppl.all[!duplicated(data.suppl.all$match.id), ]
 dim(data.suppl.all)
 
-# Note that this matters more about which is deleted, because certain markers are more useful than others
+# As some marker sources are more valuable than others, we need to decide which of the duplicates to delete
+# use the following file for this purpose
+# Saved out after the duplicates have been removed
+write.csv(x = data.suppl.all, file = "05_amplicons/dropped_duplicates_suppl_info.csv", row.names = F, quote = F)
 
-# Merge two dataframes
-data.all <- merge(x = data, y = data.suppl.all, by = "match.id")
-dim(data)
-dim(data.suppl.all)
-dim(data.all)
-head(data.all)
-
-
-#### Find the snp.spot within the extracted window ####
-snp.pos.in.window <- data.all$snp.spot - data.all$begin.region 
-head(snp.pos.in.window)
-
-# connect to the larger df
-data.all2 <- cbind(data.all, snp.pos.in.window)
-colnames(data.all2)
-head(data.all2[,7:ncol(data.all2)], n = 20)
-
-
-#### Correct the snp.pos.in.window when reverse complementing ####
-# To match the marker file, when the reference genome has been reverse-complemented during the alignment (for.or.rev = rev),
-# Calculate where the snp will be in the window after it has been reverse complemented. 
-
-for(i in 1:nrow(data.all2)){
-  # If alignment is reversed, to prepare for reverse complementing amplicon window, subtract from total.window
-  if(data.all2$for.or.rev[i]=="rev"){
-    data.all2$snp.pos.in.window[i] <- total.window - data.all2$snp.pos.in.window[i]
-  }
-}
-
-head(data.all2[,7:ncol(data.all2)], n = 20)
-
-
-###### Correct the specific issue of reverse complement SNP being at middle position
-colnames(data.all2)
-data.all2[ which(data.all2$for.or.rev=="rev" & data.all2$snp.pos.in.window=="200"), "snp.pos.in.window" ] <- 201
-
-
-###### Separate output for reverse complement target regions and forward regions
-dim(data.all2[data.all2$for.or.rev=="rev", ])
-dim(data.all2[data.all2$for.or.rev=="for", ])
-
-
-# Get the needed pieces for the name
-data.export <- data.all2[,c("match.id", "mname", "snp.pos.in.window", "for.or.rev" , "seq")]
-
-write.table(x = data.export, file = "05_amplicons/all_fields.txt", sep = "\t"
-            , col.names = F, row.names = F, quote = F)
+### Go to "identify_correspondence.r" to identify which duplicate to drop
