@@ -200,6 +200,10 @@ hist(data3$begin.region, breaks = 200, main = "Start point of extracting region"
 dev.off()
 
 
+#### Convert to 0 based number system for bedtools extraction
+head(data3)
+data3$begin.region <- (data3$begin.region - 1)
+
 # Export whole data file
 write.csv(data3, file = "04_extraction/ranges_for_amplicon_extraction.csv", row.names = F, quote = F)
 
@@ -208,4 +212,3 @@ data3.bed <- data3[,c("ref.name","begin.region","end.region")]
 head(data3.bed)
 write.table(x = data3.bed, file = "04_extraction/ranges_for_amplicon_extraction.bed", sep = "\t"
             , col.names = F, row.names = F, quote = F)
-
